@@ -51,7 +51,7 @@ fun CreateBottomSheetContent(
                     fontWeight = FontWeight.Bold,
                     fontSize = 22.sp
                 ),
-                color = Color.Black
+                color = MaterialTheme.colorScheme.onSurface
             )
 
             IconButton(
@@ -61,7 +61,7 @@ fun CreateBottomSheetContent(
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = "Close",
-                    tint = Color(0xFF5F6368)
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -102,7 +102,7 @@ fun SectionHeader(title: String) {
             fontSize = 12.sp,
             letterSpacing = 0.5.sp
         ),
-        color = Color(0xFF5F6368),
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -133,7 +133,7 @@ fun BottomSheetListItem(
                 Icon(
                     imageVector = item.icon,
                     contentDescription = item.title,
-                    tint = Color(0xFF5F6368),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(24.dp)
                 )
             } else {
@@ -153,7 +153,7 @@ fun BottomSheetListItem(
                         style = MaterialTheme.typography.bodyLarge.copy(
                             fontSize = 16.sp
                         ),
-                        color = Color.Black
+                        color = MaterialTheme.colorScheme.onSurface
                     )
 
                     if (item.isNew) {
@@ -167,7 +167,7 @@ fun BottomSheetListItem(
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontSize = 14.sp
                         ),
-                        color = Color(0xFF5F6368),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 2.dp)
                     )
                 }
@@ -181,7 +181,7 @@ fun NewBadge() {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(4.dp))
-            .background(Color(0xFF1A73E8))
+            .background(MaterialTheme.colorScheme.primary)
             .padding(horizontal = 6.dp, vertical = 2.dp)
     ) {
         Text(
@@ -190,7 +190,7 @@ fun NewBadge() {
                 fontWeight = FontWeight.Bold,
                 fontSize = 10.sp
             ),
-            color = Color.White,
+            color = MaterialTheme.colorScheme.onPrimary,
             textAlign = TextAlign.Center
         )
     }

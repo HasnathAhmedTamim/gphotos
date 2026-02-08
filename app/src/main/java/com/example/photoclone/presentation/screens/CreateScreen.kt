@@ -105,13 +105,13 @@ fun CreateScreen(
                 }
             )
         },
-        containerColor = Color.Black
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(Color.Black)
+                .background(MaterialTheme.colorScheme.background)
         ) {
             // Center content with Create button
             Box(
@@ -123,7 +123,8 @@ fun CreateScreen(
                 Button(
                     onClick = onCreateClick,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.White
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
                     ),
                     shape = RoundedCornerShape(28.dp),
                     contentPadding = PaddingValues(horizontal = 48.dp, vertical = 12.dp),
@@ -134,7 +135,6 @@ fun CreateScreen(
                 ) {
                     Text(
                         text = "Create",
-                        color = Color.Black,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -151,7 +151,7 @@ fun CreateScreen(
                     text = "Your tools",
                     fontSize = 32.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.padding(bottom = 24.dp)
                 )
 
@@ -216,7 +216,7 @@ fun ToolCard(
             .height(120.dp)
             .clickable { tool.onClick() },
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF2C2C2E)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
         ),
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(
@@ -233,13 +233,13 @@ fun ToolCard(
             Icon(
                 imageVector = tool.icon,
                 contentDescription = tool.title,
-                tint = Color.White,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(32.dp)
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = tool.title,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Normal
             )

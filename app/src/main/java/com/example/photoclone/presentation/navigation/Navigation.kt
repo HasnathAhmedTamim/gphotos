@@ -127,7 +127,8 @@ fun PhotoCloneNavigation() {
     if (showBottomSheet) {
         ModalBottomSheet(
             onDismissRequest = { showBottomSheet = false },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface
         ) {
             CreateBottomSheetContent(
                 onDismiss = { showBottomSheet = false },

@@ -62,7 +62,7 @@ fun PhotoTopAppBar(
                 Icon(
                     imageVector = Icons.Outlined.Add,
                     contentDescription = "Add",
-                    tint = Color(0xFF5F6368) // Google's gray color
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             IconButton(
@@ -72,7 +72,7 @@ fun PhotoTopAppBar(
                 Icon(
                     imageVector = Icons.Outlined.Notifications,
                     contentDescription = "Notifications",
-                    tint = Color(0xFF5F6368)
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             IconButton(
@@ -82,16 +82,16 @@ fun PhotoTopAppBar(
                 Icon(
                     imageVector = Icons.Outlined.AccountCircle,
                     contentDescription = "Profile",
-                    tint = Color(0xFF5F6368),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(32.dp)
                 )
             }
         },
-        // CHANGE 4: Update colors to match Google Photos
+        // Updated colors to adapt to light/dark mode
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = Color.White,
-            titleContentColor = Color.Black,
-            actionIconContentColor = Color(0xFF5F6368)
+            containerColor = MaterialTheme.colorScheme.surface,
+            titleContentColor = MaterialTheme.colorScheme.onSurface,
+            actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
         ),
         modifier = modifier
     )

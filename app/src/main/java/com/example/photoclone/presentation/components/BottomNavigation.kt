@@ -25,8 +25,8 @@ fun PhotoBottomNavigation(
 ) {
     NavigationBar(
         modifier = modifier,
-        containerColor = Color.White,
-        contentColor = Color(0xFF5F6368)
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
     ) {
         items.forEachIndexed { index, item ->
             NavigationBarItem(
@@ -46,10 +46,10 @@ fun PhotoBottomNavigation(
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = Color(0xFF1A73E8),
-                    selectedTextColor = Color(0xFF1A73E8),
-                    unselectedIconColor = Color(0xFF5F6368),
-                    unselectedTextColor = Color(0xFF5F6368),
+                    selectedIconColor = MaterialTheme.colorScheme.primary,
+                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     indicatorColor = Color.Transparent
                 )
             )

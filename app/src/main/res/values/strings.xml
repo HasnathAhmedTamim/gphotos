@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">PhotoClone</string>
+    <string name="photos">Photos</string>
+    <string name="collection">Collection</string>
+    <string name="create">Create</string>
+    <string name="search">Search</string>
+    <string name="no_photos">No photos to display</string>
+    <string name="loading">Loading...</string>
+</resources>

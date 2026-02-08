@@ -12,7 +12,12 @@ data class Photo(
     val dateTaken: Long = System.currentTimeMillis(),
     val isFavorite: Boolean = false,
     val width: Int = 0,
-    val height: Int = 0
+    val height: Int = 0,
+    val isSelected: Boolean = false,
+    val isInAlbum: Boolean = false,
+    val isArchived: Boolean = false,
+    val isInLockedFolder: Boolean = false,
+    val isBackedUp: Boolean = false
 )
 
 data class PhotoResponse(

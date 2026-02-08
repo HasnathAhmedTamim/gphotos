@@ -17,6 +17,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.photoclone.presentation.components.CreateBottomSheetContent
 import com.example.photoclone.presentation.model.BottomSheetItem
 import com.example.photoclone.presentation.screens.CollectionScreen
+import com.example.photoclone.presentation.screens.CreateScreen
 import com.example.photoclone.presentation.screens.HomeScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -81,16 +82,23 @@ fun PhotoCloneNavigation() {
             enterTransition = { fadeIn(animationSpec = tween(300)) },
             exitTransition = { fadeOut(animationSpec = tween(300)) }
         ) {
-            // Create screen placeholder
-            HomeScreen(
-                photos = emptyList(),
+            CreateScreen(
                 currentRoute = Screen.Create.route,
                 onAddClick = { showBottomSheet = true },
+                onNotificationClick = {
+                    // TODO: Handle notification click
+                },
+                onProfileClick = {
+                    // TODO: Handle profile click
+                },
                 onNavigate = { route ->
                     navController.navigate(route) {
                         launchSingleTop = true
                         restoreState = true
                     }
+                },
+                onCreateClick = {
+                    showBottomSheet = true
                 }
             )
         }

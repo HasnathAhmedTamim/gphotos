@@ -8,31 +8,39 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Color(0xFF1B73E8),
-    secondary = Color(0xFF34A853),
-    tertiary = Color(0xFFEA4335),
-    background = Color(0xFF121212),
-    surface = Color(0xFF1E1E1E),
+    primary = PhotosBlue,
     onPrimary = Color.White,
+    primaryContainer = PhotosBlueDark,
+    onPrimaryContainer = Color.White,
+    secondary = PhotosGreen,
     onSecondary = Color.White,
+    tertiary = PhotosRed,
     onTertiary = Color.White,
-    onBackground = Color(0xFFFFFFFF),
-    onSurface = Color(0xFFFFFFFF)
+    background = BackgroundDark,
+    onBackground = OnSurfaceDark,
+    surface = SurfaceDark,
+    onSurface = OnSurfaceDark,
+    surfaceVariant = SurfaceDark,
+    onSurfaceVariant = SecondaryTextDark,
+    outline = Divider
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Color(0xFF1B73E8),
-    secondary = Color(0xFF34A853),
-    tertiary = Color(0xFFEA4335),
-    background = Color(0xFFFFFFFF),
-    surface = Color(0xFFFFFFFF),
+    primary = PhotosBlue,
     onPrimary = Color.White,
+    primaryContainer = PhotosBlueDark,
+    onPrimaryContainer = Color.White,
+    secondary = PhotosGreen,
     onSecondary = Color.White,
+    tertiary = PhotosRed,
     onTertiary = Color.White,
-    onBackground = Color(0xFF000000),
-    onSurface = Color(0xFF000000),
-    surfaceVariant = Color(0xFFF8F9FA),
-    onSurfaceVariant = Color(0xFF5F6368)
+    background = BackgroundLight,
+    onBackground = OnSurfaceLight,
+    surface = SurfaceLight,
+    onSurface = OnSurfaceLight,
+    surfaceVariant = SurfaceLight,
+    onSurfaceVariant = SecondaryTextLight,
+    outline = Divider
 )
 
 @Composable

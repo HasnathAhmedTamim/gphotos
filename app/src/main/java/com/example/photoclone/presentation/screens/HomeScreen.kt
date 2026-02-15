@@ -1,11 +1,16 @@
 package com.example.photoclone.presentation.screens
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.AddCircle
 import androidx.compose.material.icons.outlined.Collections
 import androidx.compose.material.icons.outlined.PhotoLibrary
@@ -14,6 +19,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -22,7 +29,7 @@ import com.example.photoclone.data.model.Photo
 import com.example.photoclone.presentation.components.*
 import com.example.photoclone.presentation.viewmodel.PhotoSelectionViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun HomeScreen(
     photos: List<String>,
@@ -49,9 +56,18 @@ fun HomeScreen(
     val photoObjects by viewModel.photos.collectAsState()
     val selectedCount by viewModel.selectedCount.collectAsState()
     val isSelectionMode by viewModel.isSelectionMode.collectAsState()
-    var showBottomSheet by remember { mutableStateOf(false) }
+    // Show bottom sheet when selection mode is active and at least one item is selected
+    val showBottomSheet by remember(selectedCount, isSelectionMode) {
+        derivedStateOf { isSelectionMode && selectedCount > 0 }
+    }
     var showPager by remember { mutableStateOf(false) }
     var selectedPhotoIndex by remember { mutableStateOf(0) }
+
+    // Columns state controllable by pinch gesture
+    var columns by remember { mutableStateOf(3) }
+
+    // Grid state for mapping pointer positions to items for drag-to-select
+    val gridState = rememberLazyGridState()
 
     val navigationItems = listOf(
         BottomNavItem(
@@ -88,6 +104,12 @@ fun HomeScreen(
                     navigationIcon = {
                         IconButton(onClick = { viewModel.clearSelection() }) {
                             Icon(Icons.Default.Close, "Clear selection")
+                        }
+                    },
+                    actions = {
+                        // Optional manual actions button; bottom sheet visibility is driven by selection state
+                        IconButton(onClick = { /* manual actions */ }) {
+                            Icon(Icons.Default.MoreVert, "Actions")
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -141,10 +163,62 @@ fun HomeScreen(
             } else {
                 AdaptivePhotoGrid(
                     photos = photoObjects,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .pointerInput(Unit) {
+                            detectTransformGestures { _, _, zoom, _ ->
+                                if (zoom > 1f) {
+                                    // pinch out -> fewer columns (bigger thumbnails)
+                                    columns = (columns - 1).coerceAtLeast(2)
+                                } else if (zoom < 1f) {
+                                    // pinch in -> more columns (smaller thumbnails)
+                                    columns = (columns + 1).coerceAtMost(6)
+                                }
+                            }
+                        }
+                        .then(if (isSelectionMode) Modifier.pointerInput(Unit) {
+                            detectDragGestures(
+                                onDragStart = { offset: Offset ->
+                                    // select initial item under finger
+                                    val info = gridState.layoutInfo
+                                    val item = info.visibleItemsInfo.firstOrNull { vi ->
+                                        val left = vi.offset.x.toFloat()
+                                        val top = vi.offset.y.toFloat()
+                                        val right = (vi.offset.x + vi.size.width).toFloat()
+                                        val bottom = (vi.offset.y + vi.size.height).toFloat()
+                                        offset.x >= left && offset.x <= right && offset.y >= top && offset.y <= bottom
+                                    }
+                                    item?.let { vi ->
+                                        photoObjects.getOrNull(vi.index)?.let { photo ->
+                                            viewModel.setSelection(photo, true)
+                                        }
+                                    }
+                                },
+                                onDrag = { change, _ ->
+                                    val pos = change.position
+                                    val info = gridState.layoutInfo
+                                    val item = info.visibleItemsInfo.firstOrNull { vi ->
+                                        val left = vi.offset.x.toFloat()
+                                        val top = vi.offset.y.toFloat()
+                                        val right = (vi.offset.x + vi.size.width).toFloat()
+                                        val bottom = (vi.offset.y + vi.size.height).toFloat()
+                                        pos.x >= left && pos.x <= right && pos.y >= top && pos.y <= bottom
+                                    }
+                                    item?.let { vi ->
+                                        photoObjects.getOrNull(vi.index)?.let { photo ->
+                                            viewModel.setSelection(photo, true)
+                                        }
+                                    }
+                                    change.consume()
+                                }
+                            )
+                        } else Modifier),
                     contentPadding = PaddingValues(4.dp),
-                    gutter = 4.dp
-                ) { index, photo ->
+                    gutter = 4.dp,
+                    columns = columns,
+                    state = gridState,
+                    bigItemPredicate = { index, _ -> index % 10 == 0 }
+                ) { index, photo, imageRequestSizePx, itemModifier ->
                     SelectablePhotoGridItem(
                         imageUrl = photo.imageUrl,
                         isSelected = photo.isSelected,
@@ -161,17 +235,15 @@ fun HomeScreen(
                             if (!isSelectionMode) {
                                 viewModel.startSelectionMode(photo)
                             }
-                        }
+                        },
+                        modifier = itemModifier,
+                        imageRequestSizePx = imageRequestSizePx
                     )
                 }
             }
         }
 
-        // Show bottom sheet when in selection mode
-        LaunchedEffect(isSelectionMode, selectedCount) {
-            showBottomSheet = isSelectionMode && selectedCount > 0
-        }
-
+        // Bottom sheet visibility is derived from selection state (isSelectionMode && selectedCount > 0)
         if (showBottomSheet) {
             PhotoActionsBottomSheet(
                 selectedCount = selectedCount,
@@ -189,4 +261,3 @@ fun HomeScreen(
         }
     }
 }
-

@@ -3,9 +3,13 @@ package com.example.photoclone.presentation.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.itemsIndexed
+
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.AddCircle
 import androidx.compose.material.icons.outlined.Collections
 import androidx.compose.material.icons.outlined.PhotoLibrary
@@ -143,8 +147,22 @@ fun SearchScreen(
                 )
             }
         } else {
+            // Columns state controllable by pinch gesture
+            var columns by remember { mutableStateOf(3) }
+            val gridState = rememberLazyGridState()
+
+            // Compute per-item pixel size for image requests
+            val windowInfo = androidx.compose.ui.platform.LocalWindowInfo.current
+            val density = androidx.compose.ui.platform.LocalDensity.current
+            val widthDp = with(density) { windowInfo.containerSize.width.toDp().value }
+            val gutterDp = 2.dp.value
+            val totalGutterDp = (columns + 1) * gutterDp
+            val availableDp = widthDp - totalGutterDp
+            val itemDp = (availableDp / columns).coerceAtLeast(1f)
+            val itemPx = with(density) { itemDp.dp.toPx().toInt() }
+
             LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
+                columns = GridCells.Fixed(columns),
                 contentPadding = PaddingValues(
                     top = paddingValues.calculateTopPadding(),
                     bottom = paddingValues.calculateBottomPadding(),
@@ -155,21 +173,18 @@ fun SearchScreen(
                 verticalArrangement = Arrangement.spacedBy(2.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
-                itemsIndexed(filteredPhotos) { index, photo ->
+                items(filteredPhotos) { photo ->
                     SelectablePhotoGridItem(
                         imageUrl = photo.imageUrl,
                         isSelectionMode = isSelectionMode,
                         isSelected = photo.isSelected,
                         onClick = {
-                            if (isSelectionMode) {
-                                viewModel.toggleSelection(photo)
-                            }
+                            if (isSelectionMode) viewModel.toggleSelection(photo)
                         },
                         onLongPress = {
-                            if (!isSelectionMode) {
-                                viewModel.startSelectionMode(photo)
-                            }
-                        }
+                            if (!isSelectionMode) viewModel.startSelectionMode(photo)
+                        },
+                        imageRequestSizePx = itemPx
                     )
                 }
             }

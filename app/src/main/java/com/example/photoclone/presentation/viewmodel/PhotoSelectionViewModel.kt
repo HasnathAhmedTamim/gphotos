@@ -13,7 +13,9 @@ class PhotoSelectionViewModel : ViewModel() {
     private val _photos = MutableStateFlow<List<Photo>>(emptyList())
     val photos: StateFlow<List<Photo>> = _photos.asStateFlow()
 
+    @Suppress("unused")
     private val _selectedPhotos = MutableStateFlow<List<Photo>>(emptyList())
+    @Suppress("unused")
     val selectedPhotos: StateFlow<List<Photo>> = _selectedPhotos.asStateFlow()
 
     private val _selectedCount = MutableStateFlow(0)
@@ -46,6 +48,23 @@ class PhotoSelectionViewModel : ViewModel() {
             if (index != -1) {
                 currentPhotos[index] = currentPhotos[index].copy(isSelected = true)
                 _photos.value = currentPhotos
+                updateSelectionState()
+            }
+        }
+    }
+
+    // New API: set explicit selection state for a photo (used for drag-to-select)
+    fun setSelection(photo: Photo, selected: Boolean) {
+        viewModelScope.launch {
+            val currentPhotos = _photos.value.toMutableList()
+            val index = currentPhotos.indexOfFirst { it.id == photo.id }
+            if (index != -1 && currentPhotos[index].isSelected != selected) {
+                currentPhotos[index] = currentPhotos[index].copy(isSelected = selected)
+                _photos.value = currentPhotos
+                // Ensure selection mode is enabled when selecting
+                if (selected) {
+                    _isSelectionMode.value = true
+                }
                 updateSelectionState()
             }
         }

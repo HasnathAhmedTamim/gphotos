@@ -7,7 +7,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -151,7 +150,8 @@ fun BottomSheetListItem(
                     Text(
                         text = item.title,
                         style = MaterialTheme.typography.bodyLarge.copy(
-                            fontSize = 16.sp
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
                         ),
                         color = MaterialTheme.colorScheme.onSurface
                     )

@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
@@ -103,7 +104,7 @@ private fun PhotoActionButton(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .width(80.dp)
+            .width(56.dp) // match the size of the FilledTonalIconButton so label width equals icon width
             .padding(vertical = 8.dp)
     ) {
         FilledTonalIconButton(
@@ -125,11 +126,11 @@ private fun PhotoActionButton(
 
         Text(
             text = label,
-            style = MaterialTheme.typography.labelSmall,
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
             maxLines = 2,
-            lineHeight = MaterialTheme.typography.labelSmall.fontSize
+            modifier = Modifier.fillMaxWidth()
         )
     }
 }

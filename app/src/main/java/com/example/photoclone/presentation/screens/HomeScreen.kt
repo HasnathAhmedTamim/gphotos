@@ -3,10 +3,7 @@ package com.example.photoclone.presentation.screens
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -15,6 +12,13 @@ import androidx.compose.material.icons.outlined.AddCircle
 import androidx.compose.material.icons.outlined.Collections
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Create
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.CloudUpload
+import androidx.compose.material.icons.outlined.Archive
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,11 +27,15 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.photoclone.R
 import com.example.photoclone.data.model.Photo
 import com.example.photoclone.presentation.components.*
 import com.example.photoclone.presentation.viewmodel.PhotoSelectionViewModel
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -241,23 +249,24 @@ fun HomeScreen(
                     )
                 }
             }
-        }
 
-        // Bottom sheet visibility is derived from selection state (isSelectionMode && selectedCount > 0)
-        if (showBottomSheet) {
-            PhotoActionsBottomSheet(
-                selectedCount = selectedCount,
-                onShare = { viewModel.shareSelected() },
-                onAddToAlbum = { viewModel.addToAlbum() },
-                onCreate = { /* TODO: Navigate to create */ },
-                onDelete = { viewModel.deleteSelected() },
-                onBackup = { viewModel.backupSelected() },
-                onArchive = { viewModel.archiveSelected() },
-                onDeleteFromArchive = { viewModel.deleteSelected() },
-                onEditLocation = { /* TODO */ },
-                onMoveToLocked = { viewModel.moveToLockedFolder() },
-                onDismiss = { viewModel.clearSelection() }
-            )
+            // Persistent bottom sheet: replace modal bottom sheet with non-modal Surface so grid remains interactive
+            if (showBottomSheet) {
+                SelectionBottomSheet(
+                    selectedCount = selectedCount,
+                    onClear = { viewModel.clearSelection() },
+                    onShare = { viewModel.shareSelected() },
+                    onAddToAlbum = { viewModel.addToAlbum() },
+                    onCreate = { /* create */ },
+                    onDelete = { viewModel.deleteSelected() },
+                    onBackup = { viewModel.backupSelected() },
+                    onArchive = { viewModel.archiveSelected() },
+                    onMoveToLocked = { viewModel.moveToLockedFolder() },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .zIndex(1f)
+                )
+            }
         }
     }
 }

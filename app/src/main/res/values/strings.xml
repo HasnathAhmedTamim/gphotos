@@ -6,4 +6,15 @@
     <string name="search">Search</string>
     <string name="no_photos">No photos to display</string>
     <string name="loading">Loading...</string>
+    <!-- Bottom Sheet Actions -->
+    <string name="album">Album</string>
+    <string name="collage">Collage</string>
+    <string name="highlight_video">Highlight video</string>
+    <string name="cinematic_photo">Cinematic photo</string>
+    <string name="animation">Animation</string>
+    <string name="remix">Remix</string>
+    <string name="share_with_partner">Share with a partner</string>
+    <string name="import_from_other_places">Import from other places</string>
+    <!-- Error Messages -->
+    <string name="navigation_error">Failed to navigate. Please try again.</string>
 </resources>

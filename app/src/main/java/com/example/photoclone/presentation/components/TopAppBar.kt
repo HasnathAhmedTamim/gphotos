@@ -34,9 +34,9 @@ fun PhotoTopAppBar(
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // CHANGE 1: Use Image instead of Icon for PNG logo
+                // Updated to use the new Google Photos PNG logo
                 Image(
-                    painter = painterResource(R.drawable.google_photos_logo), // Your PNG file
+                    painter = painterResource(R.drawable.google_photos_logo),
                     contentDescription = "Google Photos Logo",
                     modifier = Modifier.size(36.dp)
                 )

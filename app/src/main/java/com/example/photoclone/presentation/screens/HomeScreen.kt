@@ -4,9 +4,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.AddCircle
@@ -142,33 +139,30 @@ fun HomeScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             } else {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(3),
+                AdaptivePhotoGrid(
+                    photos = photoObjects,
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(2.dp),
-                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(2.dp),
-                    verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(2.dp)
-                ) {
-                    itemsIndexed(photoObjects) { index, photo ->
-                        SelectablePhotoGridItem(
-                            imageUrl = photo.imageUrl,
-                            isSelected = photo.isSelected,
-                            isSelectionMode = isSelectionMode,
-                            onClick = {
-                                if (isSelectionMode) {
-                                    viewModel.toggleSelection(photo)
-                                } else {
-                                    selectedPhotoIndex = index
-                                    showPager = true
-                                }
-                            },
-                            onLongPress = {
-                                if (!isSelectionMode) {
-                                    viewModel.startSelectionMode(photo)
-                                }
+                    contentPadding = PaddingValues(4.dp),
+                    gutter = 4.dp
+                ) { index, photo ->
+                    SelectablePhotoGridItem(
+                        imageUrl = photo.imageUrl,
+                        isSelected = photo.isSelected,
+                        isSelectionMode = isSelectionMode,
+                        onClick = {
+                            if (isSelectionMode) {
+                                viewModel.toggleSelection(photo)
+                            } else {
+                                selectedPhotoIndex = index
+                                showPager = true
                             }
-                        )
-                    }
+                        },
+                        onLongPress = {
+                            if (!isSelectionMode) {
+                                viewModel.startSelectionMode(photo)
+                            }
+                        }
+                    )
                 }
             }
         }

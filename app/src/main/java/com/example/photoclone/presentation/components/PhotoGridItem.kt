@@ -3,13 +3,14 @@ package com.example.photoclone.presentation.components
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -27,25 +28,30 @@ import com.example.photoclone.R
 fun PhotoGridItem(
     imageUrl: String,
     modifier: Modifier = Modifier,
-    cornerRadius: Int = 0,
+    cornerRadius: Int = 8,
     showPlaceholder: Boolean = true
 ) {
-    Box(
-        modifier = modifier
-            .aspectRatio(1f)
-            .clip(RoundedCornerShape(cornerRadius.dp)),
-        contentAlignment = Alignment.Center
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(cornerRadius.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        AsyncImage(
-            model = imageUrl,
-            contentDescription = "Photo",
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize(),
-            placeholder = if (showPlaceholder) {
-                painterResource(R.drawable.ic_photo_placeholder)
-            } else null,
-            error = painterResource(R.drawable.ic_broken_image)
-        )
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(cornerRadius.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = "Photo",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+                placeholder = if (showPlaceholder) {
+                    painterResource(R.drawable.ic_photo_placeholder)
+                } else null,
+                error = painterResource(R.drawable.ic_broken_image)
+            )
+        }
     }
 }
 
@@ -57,52 +63,56 @@ fun SelectablePhotoGridItem(
     isSelectionMode: Boolean,
     onClick: () -> Unit,
     onLongPress: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    cornerRadius: Int = 8
 ) {
-    Box(
+    Card(
         modifier = modifier
-            .aspectRatio(1f)
+            .clip(RoundedCornerShape(cornerRadius.dp))
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongPress
-            )
+            ),
+        shape = RoundedCornerShape(cornerRadius.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        // Photo image
-        AsyncImage(
-            model = imageUrl,
-            contentDescription = "Photo",
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize(),
-            placeholder = painterResource(R.drawable.ic_photo_placeholder),
-            error = painterResource(R.drawable.ic_broken_image)
-        )
-
-        // Selection overlay
-        if (isSelectionMode) {
-            Surface(
+        Box {
+            // Photo image
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = "Photo",
+                contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
-                color = if (isSelected) {
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                } else {
-                    MaterialTheme.colorScheme.surface.copy(alpha = 0.2f)
-                }
-            ) {}
-
-            // Checkbox indicator
-            Icon(
-                imageVector = Icons.Default.CheckCircle,
-                contentDescription = if (isSelected) "Selected" else "Not selected",
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(8.dp)
-                    .size(24.dp),
-                tint = if (isSelected) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                }
+                placeholder = painterResource(R.drawable.ic_photo_placeholder),
+                error = painterResource(R.drawable.ic_broken_image)
             )
+
+            // Selection overlay
+            if (isSelectionMode) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = if (isSelected) {
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                    } else {
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.2f)
+                    }
+                ) {}
+
+                // Checkbox indicator
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = if (isSelected) "Selected" else "Not selected",
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                        .size(24.dp),
+                    tint = if (isSelected) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    }
+                )
+            }
         }
     }
 }
-

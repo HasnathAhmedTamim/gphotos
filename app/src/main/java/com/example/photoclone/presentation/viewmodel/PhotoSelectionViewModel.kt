@@ -1,12 +1,22 @@
 package com.example.photoclone.presentation.viewmodel
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.photoclone.data.model.Photo
+import com.example.photoclone.data.repository.GalleryRepository
+import com.example.photoclone.data.repository.PickedImagesRepository
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import androidx.paging.PagingData
+import androidx.paging.cachedIn
+import androidx.paging.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
 
 /**
  *  ViewModel for managing photo selection state across UI screens. It holds the list of photos,
@@ -42,10 +52,36 @@ class PhotoSelectionViewModel : ViewModel() {
     private val _isSelectionMode = MutableStateFlow(false)
     val isSelectionMode: StateFlow<Boolean> = _isSelectionMode.asStateFlow()
 
+    // Job for managing the coroutine that collects picked images
+    private var pickedImagesCollectJob: Job? = null
+
     // Replace the current list of photos (e.g., when screen data updates)
     fun setPhotos(photos: List<Photo>) {
         _photos.value = photos
         updateSelectionState()
+    }
+
+    // Load gallery images from device and populate photo list (called after permission is granted)
+    fun loadGallery(context: Context, limit: Int = 200) {
+        // If we previously were showing persisted picks, stop that collector when loading full gallery
+        pickedImagesCollectJob?.cancel()
+        pickedImagesCollectJob = null
+        viewModelScope.launch {
+            try {
+                val uris = GalleryRepository.loadGalleryImageUris(context, limit)
+                val photoList = uris.mapIndexed { index, uri ->
+                    Photo(
+                        id = index.toLong(),
+                        imageUrl = uri.toString(),
+                        thumbnailUrl = uri.toString()
+                    )
+                }
+                _photos.value = photoList
+                updateSelectionState()
+            } catch (_: Exception) {
+                // Ignore or log; keep existing photos
+            }
+        }
     }
 
     // Toggle selection for a single photo (tap in selection mode)
@@ -143,6 +179,53 @@ class PhotoSelectionViewModel : ViewModel() {
     fun moveToLockedFolder() {
         viewModelScope.launch {
             // TODO: Implement move to locked folder logic
+        }
+    }
+
+    // New: provide a paging flow of Photos for large galleries
+    fun pagerPhotos(context: Context, pageSize: Int = 50): Flow<PagingData<Photo>> {
+        return GalleryRepository.pagerForImages(context, pageSize)
+            .map { pagingData: PagingData<Uri> ->
+                pagingData.map { uri: Uri ->
+                    Photo(
+                        id = uri.hashCode().toLong(),
+                        imageUrl = uri.toString(),
+                        thumbnailUrl = uri.toString()
+                    )
+                }
+            }
+            .cachedIn(viewModelScope)
+    }
+
+    // Persist a list of picked Uris (SAF) using PickedImagesRepository
+    fun persistPickedUris(context: Context, uris: List<String>) {
+        val repo = PickedImagesRepository(context)
+        viewModelScope.launch {
+            uris.forEach { uri ->
+                try {
+                    repo.savePickedUri(uri)
+                } catch (_: Exception) {
+                    // ignore
+                }
+            }
+            // Reload persisted picks into view model
+            loadPickedImages(context)
+        }
+    }
+
+    // Load persisted picked images from local DB (Room) and set them as photos
+    fun loadPickedImages(context: Context) {
+        val repo = PickedImagesRepository(context)
+        // Cancel any prior job
+        pickedImagesCollectJob?.cancel()
+        pickedImagesCollectJob = viewModelScope.launch {
+            repo.getPickedImages().collect { list ->
+                val mapped = list.mapIndexed { index, picked ->
+                    Photo(id = picked.id, imageUrl = picked.uri, thumbnailUrl = picked.uri)
+                }
+                _photos.value = mapped
+                updateSelectionState()
+            }
         }
     }
 }

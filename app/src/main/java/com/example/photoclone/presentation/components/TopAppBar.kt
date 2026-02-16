@@ -3,7 +3,6 @@ package com.example.photoclone.presentation.components
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
@@ -14,11 +13,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.photoclone.R
 
 /**
@@ -48,16 +44,6 @@ fun PhotoTopAppBar(
                     modifier = Modifier.size(36.dp)
                 )
                 Spacer(modifier = Modifier.width(12.dp))
-//                Text(
-//                    text = "Photos",
-//                    // CHANGE 2: Updated text style to match Google Photos
-//                    style = MaterialTheme.typography.titleLarge.copy(
-//                        fontWeight = FontWeight.Normal,
-//                        fontSize = 22.sp,
-//                        letterSpacing = (-0.5).sp
-//                    ),
-//                    color = Color.Black
-//                )
             }
         },
         actions = {

@@ -33,7 +33,8 @@ fun PhotoImage(
             .data(imageUrl)
             .crossfade(true)
         requestSizePx?.let { builder.size(Size(it, it)) }
-        builder.allowHardware(true)
+        // Using software bitmaps is more compatible with content:// URIs across Android versions/devices.
+        builder.allowHardware(false)
         builder.build()
     }
 

@@ -1,3 +1,5 @@
+@file:Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE", "UNUSED_VALUE", "UNUSED_VARIABLE")
+
 package com.example.photoclone.presentation.navigation
 
 import android.util.Log
@@ -63,14 +65,10 @@ fun PhotoCloneNavigation() {
                 },
                 onProfileClick = { navController.navigate(Screen.Profile.route) },
                 onNavigate = { route ->
-                    // Safe navigation with try/catch
-                    try {
-                        navController.navigate(route) {
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    } catch (e: Exception) {
-                        Log.e("Navigation", "Failed to navigate to $route", e)
+                    // Direct navigation; NavController navigate is safe here
+                    navController.navigate(route) {
+                        launchSingleTop = true
+                        restoreState = true
                     }
                 }
             )
@@ -90,13 +88,9 @@ fun PhotoCloneNavigation() {
                 },
                 onProfileClick = { navController.navigate(Screen.Profile.route) },
                 onNavigate = { route ->
-                    try {
-                        navController.navigate(route) {
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    } catch (e: Exception) {
-                        Log.e("Navigation", "Failed to navigate to $route", e)
+                    navController.navigate(route) {
+                        launchSingleTop = true
+                        restoreState = true
                     }
                 }
             )
@@ -116,13 +110,9 @@ fun PhotoCloneNavigation() {
                 },
                 onProfileClick = { navController.navigate(Screen.Profile.route) },
                 onNavigate = { route ->
-                    try {
-                        navController.navigate(route) {
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    } catch (e: Exception) {
-                        Log.e("Navigation", "Failed to navigate to $route", e)
+                    navController.navigate(route) {
+                        launchSingleTop = true
+                        restoreState = true
                     }
                 },
                 onCreateClick = {
@@ -141,13 +131,9 @@ fun PhotoCloneNavigation() {
                 photos = demoPhotos,
                 currentRoute = Screen.Search.route,
                 onNavigate = { route ->
-                    try {
-                        navController.navigate(route) {
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    } catch (e: Exception) {
-                        Log.e("Navigation", "Failed to navigate to $route", e)
+                    navController.navigate(route) {
+                        launchSingleTop = true
+                        restoreState = true
                     }
                 },
                 onProfileClick = { navController.navigate(Screen.Profile.route) }

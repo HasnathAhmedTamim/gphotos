@@ -1,3 +1,5 @@
+@file:Suppress("unused")
+
 package com.example.photoclone.domain.model
 
 // NavigationItem represents a screen in the bottom/top navigation.

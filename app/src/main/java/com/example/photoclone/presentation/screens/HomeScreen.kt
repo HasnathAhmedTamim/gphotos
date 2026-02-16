@@ -1,6 +1,17 @@
+@file:Suppress("ALL")
+
 package com.example.photoclone.presentation.screens
 
+import android.Manifest
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.contract.ActivityResultContracts.OpenMultipleDocuments
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
@@ -12,20 +23,15 @@ import androidx.compose.material.icons.outlined.AddCircle
 import androidx.compose.material.icons.outlined.Collections
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.Create
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.CloudUpload
-import androidx.compose.material.icons.outlined.Archive
-import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -33,20 +39,9 @@ import com.example.photoclone.R
 import com.example.photoclone.data.model.Photo
 import com.example.photoclone.presentation.components.*
 import com.example.photoclone.presentation.viewmodel.PhotoSelectionViewModel
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-/**
- *  Home screen showing the photo grid with selection and full-screen viewer.
- *  The screen is structured with a top app bar, a grid of photos, and a bottom navigation bar. It also includes a selection mode with a persistent bottom sheet for actions.
- *  - The top app bar includes the app logo and action icons for adding content, viewing notifications, and accessing the user profile. When in selection mode, it changes to show the number of selected items and a clear selection button.
- *  - The main content area displays a grid of photos, which can be tapped to open a full-screen pager. The grid supports pinch-to-resize to adjust the number of columns, and long-press to enter selection mode. When in selection mode, users can drag across photos to select multiple items.
- *  - The bottom navigation bar allows users to switch between different sections of the app (Photos, Collection, Create, Search), but it is hidden when in selection mode to focus on the selected items and available actions.
- *  - When photos are selected, a persistent bottom sheet appears with actions such as Share, Add to album, Create, Delete, Backup, Archive, Edit location, and Move to locked folder. Each action triggers a callback that can be implemented in the ViewModel to perform the corresponding operation on the selected photos.
- *  The UI is designed to closely mimic the look and feel of the Google Photos app, with attention to theming, typography, and layout. The use of a ViewModel allows for proper state management of the photo list and selection state, ensuring a responsive and interactive user experience. The screen is responsive and adapts to different screen sizes, ensuring a consistent user experience across devices. The photo grid is interactive, allowing users to easily view and manage their photos with familiar gestures and actions.
- *
- * */
-// Home screen: shows photo grid, supports selection, pinch-to-resize, and full-screen pager.
+import androidx.paging.compose.collectAsLazyPagingItems
+import kotlin.runCatching
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun HomeScreen(
@@ -59,20 +54,67 @@ fun HomeScreen(
     onNavigate: (String) -> Unit = {},
     viewModel: PhotoSelectionViewModel = viewModel()
 ) {
-    // Sync incoming URL list into the ViewModel as Photo objects (runs when photos change)
-    LaunchedEffect(photos) {
-        val photoObjects = photos.mapIndexed { index, url ->
-            Photo(
-                id = index.toLong(),
-                imageUrl = url,
-                thumbnailUrl = url
-            )
-        }
-        viewModel.setPhotos(photoObjects)
+    val context = LocalContext.current
+
+    // Permission logic: choose the correct runtime permission for the SDK
+    val readPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        Manifest.permission.READ_MEDIA_IMAGES
+    } else {
+        Manifest.permission.READ_EXTERNAL_STORAGE
     }
 
-    // Observe ViewModel state (photos and selection state)
+    var permissionState by remember { mutableStateOf<Boolean?>(null) }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        permissionState = granted
+        if (granted) {
+            viewModel.loadGallery(context)
+        }
+    }
+
+    // Launcher for picking multiple images as a fallback when broad permission is not granted
+    val pickImagesLauncher = rememberLauncherForActivityResult(
+        contract = OpenMultipleDocuments()
+    ) { uris: List<Uri> ->
+        if (uris.isNotEmpty()) {
+            // Take persistable URI permissions and persist the URIs
+            val uriStrings = mutableListOf<String>()
+            uris.forEach { uri ->
+                try {
+                    context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                } catch (_: Exception) {
+                    // ignore
+                }
+                uriStrings += uri.toString()
+            }
+            // Persist via ViewModel (saves to Room)
+            viewModel.persistPickedUris(context, uriStrings)
+        }
+    }
+
+    // On first composition, check permission and request if needed
+    LaunchedEffect(Unit) {
+        val granted = androidx.core.content.ContextCompat.checkSelfPermission(context, readPermission) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        permissionState = granted
+        if (granted) {
+            viewModel.loadGallery(context)
+        } else {
+            // Load any previously picked images (persisted via SAF) so the grid can show them without broad permission
+            viewModel.loadPickedImages(context)
+            // Launch permission request; you might want to show rationale first in a production app
+            permissionLauncher.launch(readPermission)
+        }
+    }
+
+    // Observe photos from the ViewModel; fallback to the provided demo list if empty
     val photoObjects by viewModel.photos.collectAsState()
+    val displayPhotos = if (photoObjects.isNotEmpty()) photoObjects else photos.mapIndexed { index, url ->
+        Photo(id = index.toLong(), imageUrl = url, thumbnailUrl = url)
+    }
+
+    // Observe selection state
     val selectedCount by viewModel.selectedCount.collectAsState()
     val isSelectionMode by viewModel.isSelectionMode.collectAsState()
 
@@ -117,39 +159,41 @@ fun HomeScreen(
 
     val selectedIndex = navigationItems.indexOfFirst { it.route == currentRoute }.takeIf { it >= 0 } ?: 0
 
+    // Pager window for paging mode: nearby loaded URIs to feed PhotoPager
+    var pagerWindow by remember { mutableStateOf<List<String>>(emptyList()) }
+
     Scaffold(
         topBar = {
-            // Show selection top bar when in selection mode, otherwise app top bar
-            if (showPager) {
-                // No top bar while full-screen pager is visible (pager provides its own back overlay)
-                null
-            } else if (isSelectionMode) {
-                TopAppBar(
-                    title = {
-                        Text("$selectedCount selected")
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = { viewModel.clearSelection() }) {
-                            Icon(Icons.Default.Close, "Clear selection")
-                        }
-                    },
-                    actions = {
-                        // Optional actions menu while selecting
-                        IconButton(onClick = { /* manual actions */ }) {
-                            Icon(Icons.Default.MoreVert, "Actions")
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        titleContentColor = MaterialTheme.colorScheme.onSurface
+            // Only render a top bar when the pager is not visible
+            if (!showPager) {
+                if (isSelectionMode) {
+                    TopAppBar(
+                        title = {
+                            Text("$selectedCount selected")
+                        },
+                        navigationIcon = {
+                            IconButton(onClick = { viewModel.clearSelection() }) {
+                                Icon(Icons.Default.Close, "Clear selection")
+                            }
+                        },
+                        actions = {
+                            // Optional actions menu while selecting
+                            IconButton(onClick = { /* manual actions */ }) {
+                                Icon(Icons.Default.MoreVert, "Actions")
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            titleContentColor = MaterialTheme.colorScheme.onSurface
+                        )
                     )
-                )
-            } else {
-                PhotoTopAppBar(
-                    onAddClick = onAddClick,
-                    onNotificationClick = onNotificationClick,
-                    onProfileClick = onProfileClick
-                )
+                } else {
+                    PhotoTopAppBar(
+                        onAddClick = onAddClick,
+                        onNotificationClick = onNotificationClick,
+                        onProfileClick = onProfileClick
+                    )
+                }
             }
         },
         bottomBar = {
@@ -171,84 +215,138 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            when {
-                // Full-screen pager shown when a photo is opened
-                showPager -> {
-                    PhotoPager(
-                        photoUrls = photos,
-                        initialPage = selectedPhotoIndex,
-                        onDismiss = { showPager = false }
-                    )
-                }
+            // When permission granted, get paging items (call collectAsLazyPagingItems directly in composition)
+            val pagingItems = if (permissionState == true) viewModel.pagerPhotos(context).collectAsLazyPagingItems() else null
 
-                // Loading and empty states
-                isLoading -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
-                photos.isEmpty() -> {
-                    Text(
-                        text = stringResource(R.string.no_photos),
-                        modifier = Modifier.align(Alignment.Center),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+            // Determine whether to use paging or the in-memory displayPhotos
+            val usingPaging = permissionState == true
 
-                else -> {
-                    // Adaptive grid with pinch-to-resize and (optional) drag-to-select when in selection mode
-                    AdaptivePhotoGrid(
-                        photos = photoObjects,
+            // Render content: pager, loading, empty, or the grid (paged or in-memory)
+            if (showPager) {
+                val urls = if (usingPaging && pagerWindow.isNotEmpty()) pagerWindow else displayPhotos.map { it.imageUrl }
+                PhotoPager(
+                    photoUrls = urls,
+                    initialPage = selectedPhotoIndex,
+                    onDismiss = { showPager = false }
+                )
+            } else if (isLoading) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            } else if (displayPhotos.isEmpty()) {
+                // Permission denied or no photos available
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(text = stringResource(R.string.no_photos), style = MaterialTheme.typography.bodyLarge)
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // If permission was denied, offer to open app settings
+                    val denied = permissionState == false
+                    if (denied) {
+                        Text(text = "Permission denied. Enable access in settings to view your photos.")
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(onClick = {
+                                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                    data = Uri.fromParts("package", context.packageName, null)
+                                }
+                                context.startActivity(intent)
+                            }) { Text(text = "Open settings") }
+
+                            // Fallback: let user pick some images instead of granting broad permission
+                            Button(onClick = { pickImagesLauncher.launch(arrayOf("image/*")) }) { Text(text = "Pick images") }
+                        }
+                    } else {
+                        // If permission is simply not yet granted, still offer pick images fallback
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(onClick = { permissionLauncher.launch(readPermission) }) { Text(text = "Request permission") }
+                            Button(onClick = { pickImagesLauncher.launch(arrayOf("image/*")) }) { Text(text = "Pick images") }
+                        }
+                    }
+                }
+            } else {
+                // Show grid: paged when permission/grants available, otherwise in-memory grid
+                if (usingPaging && pagingItems != null) {
+                    AdaptivePagingGrid(
+                        items = pagingItems,
                         modifier = Modifier
                             .fillMaxSize()
-                            // Detect pinch gestures to increase/decrease columns
                             .pointerInput(Unit) {
                                 detectTransformGestures { _, _, zoom, _ ->
-                                    if (zoom > 1f) {
-                                        // pinch out -> fewer columns (bigger thumbnails)
-                                        columns = (columns - 1).coerceAtLeast(2)
-                                    } else if (zoom < 1f) {
-                                        // pinch in -> more columns (smaller thumbnails)
-                                        columns = (columns + 1).coerceAtMost(6)
-                                    }
+                                    if (zoom > 1f) columns = (columns - 1).coerceAtLeast(2) else if (zoom < 1f) columns = (columns + 1).coerceAtMost(6)
                                 }
                             }
-                            // If in selection mode, enable drag gestures to select multiple items
+                            .then(if (isSelectionMode) Modifier.pointerInput(Unit) {
+                                detectDragGestures(onDragStart = { /* skip drag-select for paging */ }, onDrag = { change, _ -> change.consume() })
+                            } else Modifier),
+                        contentPadding = PaddingValues(4.dp),
+                        gutter = 4.dp,
+                        columns = columns,
+                        state = gridState
+                    ) { index, photo, imageRequestSizePx, itemModifier ->
+                        photo?.let { p ->
+                            SelectablePhotoGridItem(
+                                imageUrl = p.imageUrl,
+                                isSelected = p.isSelected,
+                                isSelectionMode = isSelectionMode,
+                                onClick = {
+                                    if (isSelectionMode) {
+                                        viewModel.toggleSelection(p)
+                                    } else {
+                                        // Build a small pager window around the tapped index so the viewer can swipe locally
+                                        val windowRadius = 10
+                                        val start = (index - windowRadius).coerceAtLeast(0)
+                                        val end = (index + windowRadius)
+                                        val window = mutableListOf<String>()
+                                        var initialPosInWindow = 0
+                                        for (i in start..end) {
+                                            val item = pagingItems[i]
+                                            if (item != null) {
+                                                if (i == index) initialPosInWindow = window.size
+                                                window += item.imageUrl
+                                            }
+                                        }
+                                        pagerWindow = window
+                                        selectedPhotoIndex = initialPosInWindow
+                                        showPager = true
+                                    }
+                                },
+                                onLongPress = { if (!isSelectionMode) viewModel.startSelectionMode(p) },
+                                modifier = itemModifier,
+                                imageRequestSizePx = imageRequestSizePx
+                            )
+                        }
+                    }
+                } else {
+                    AdaptivePhotoGrid(
+                        photos = displayPhotos,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .pointerInput(Unit) {
+                                detectTransformGestures { _, _, zoom, _ ->
+                                    if (zoom > 1f) columns = (columns - 1).coerceAtLeast(2) else if (zoom < 1f) columns = (columns + 1).coerceAtMost(6)
+                                }
+                            }
                             .then(if (isSelectionMode) Modifier.pointerInput(Unit) {
                                 detectDragGestures(
                                     onDragStart = { offset: Offset ->
-                                        // On drag start, select the item under the finger (if visible)
                                         val info = gridState.layoutInfo
                                         val item = info.visibleItemsInfo.firstOrNull { vi ->
-                                            val left = vi.offset.x.toFloat()
-                                            val top = vi.offset.y.toFloat()
-                                            val right = (vi.offset.x + vi.size.width).toFloat()
-                                            val bottom = (vi.offset.y + vi.size.height).toFloat()
+                                            val left = vi.offset.x.toFloat(); val top = vi.offset.y.toFloat(); val right = (vi.offset.x + vi.size.width).toFloat(); val bottom = (vi.offset.y + vi.size.height).toFloat()
                                             offset.x >= left && offset.x <= right && offset.y >= top && offset.y <= bottom
                                         }
-                                        item?.let { vi ->
-                                            photoObjects.getOrNull(vi.index)?.let { photo ->
-                                                viewModel.setSelection(photo, true)
-                                            }
-                                        }
+                                        item?.let { vi -> displayPhotos.getOrNull(vi.index)?.let { photo -> viewModel.setSelection(photo, true) } }
                                     },
                                     onDrag = { change, _ ->
-                                        // During drag, select any visible item under the current pointer position
                                         val pos = change.position
                                         val info = gridState.layoutInfo
                                         val item = info.visibleItemsInfo.firstOrNull { vi ->
-                                            val left = vi.offset.x.toFloat()
-                                            val top = vi.offset.y.toFloat()
-                                            val right = (vi.offset.x + vi.size.width).toFloat()
-                                            val bottom = (vi.offset.y + vi.size.height).toFloat()
+                                            val left = vi.offset.x.toFloat(); val top = vi.offset.y.toFloat(); val right = (vi.offset.x + vi.size.width).toFloat(); val bottom = (vi.offset.y + vi.size.height).toFloat()
                                             pos.x >= left && pos.x <= right && pos.y >= top && pos.y <= bottom
                                         }
-                                        item?.let { vi ->
-                                            photoObjects.getOrNull(vi.index)?.let { photo ->
-                                                viewModel.setSelection(photo, true)
-                                            }
-                                        }
+                                        item?.let { vi -> displayPhotos.getOrNull(vi.index)?.let { photo -> viewModel.setSelection(photo, true) } }
                                         change.consume()
                                     }
                                 )
@@ -256,31 +354,46 @@ fun HomeScreen(
                         contentPadding = PaddingValues(4.dp),
                         gutter = 4.dp,
                         columns = columns,
-                        state = gridState,
-                        bigItemPredicate = { index, _ -> index % 10 == 0 }
+                        state = gridState
                     ) { index, photo, imageRequestSizePx, itemModifier ->
-                        // Each grid cell is a selectable tile that supports tap/long-press
                         SelectablePhotoGridItem(
                             imageUrl = photo.imageUrl,
                             isSelected = photo.isSelected,
                             isSelectionMode = isSelectionMode,
                             onClick = {
-                                if (isSelectionMode) {
-                                    viewModel.toggleSelection(photo)
-                                } else {
-                                    selectedPhotoIndex = index
-                                    showPager = true
-                                }
+                                if (isSelectionMode) viewModel.toggleSelection(photo) else { selectedPhotoIndex = index; showPager = true }
                             },
-                            onLongPress = {
-                                if (!isSelectionMode) {
-                                    viewModel.startSelectionMode(photo)
-                                }
-                            },
+                            onLongPress = { if (!isSelectionMode) viewModel.startSelectionMode(photo) },
                             modifier = itemModifier,
                             imageRequestSizePx = imageRequestSizePx
                         )
                     }
+                }
+            }
+
+            // Debug banner to help diagnose device issues (shown only when BuildConfig.DEBUG is true).
+            val debugMode = remember {
+                runCatching {
+                    val cls = Class.forName("${context.packageName}.BuildConfig")
+                    val field = cls.getDeclaredField("DEBUG")
+                    field.isAccessible = true
+                    (field.get(null) as? Boolean) ?: false
+                }.getOrDefault(false)
+            }
+
+            if (debugMode) {
+                val pagingCount = if (usingPaging && pagingItems != null) pagingItems.itemCount else -1
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp)
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(text = "perm:${permissionState}", style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(text = "photos:${displayPhotos.size}", style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(text = "pagerItems:${pagingCount}", style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Button(onClick = { viewModel.loadGallery(context) }) { Text("Reload") }
                 }
             }
 

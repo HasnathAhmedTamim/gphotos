@@ -11,6 +11,7 @@ interface PhotoRepository {
 }
 
 // Simple in-memory mock used for UI/dev previews and tests.
+@Suppress("unused")
 class MockPhotoRepository : PhotoRepository {
     // Generate fixed mock photos with seeded URLs and alternating favorites.
     private val mockPhotos = List(50) { index ->

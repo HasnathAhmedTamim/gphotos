@@ -45,6 +45,7 @@ data class Photo(
 )
 
 // Simple paged response. Consider separate network DTOs to avoid coupling.
+@Suppress("unused")
 data class PhotoResponse(
     val photos: List<Photo>,
     val total: Int,

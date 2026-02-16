@@ -43,6 +43,19 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 
+/**
+ * Search screen showing a searchable grid of photos with selection support and drag-to-select.
+ * The screen includes:
+ * - A top app bar with an inline search TextField that filters photos by their URL (case-insensitive).
+ * - A grid of photos that updates in real-time as the search query changes.
+ * - Support for selection mode, allowing users to select photos by tapping or dragging across them.
+ * - A persistent bottom sheet that appears when photos are selected, showing the count of selected items and available actions (Share, Add to album, Create, Delete, Backup, Archive, Move to locked folder).
+ * - A bottom navigation bar for switching between different sections of the app (Photos, Collection, Create, Search).
+ * The UI is designed to closely mimic the look and feel of the Google Photos app, with attention to theming, typography, and layout. The use of sample data allows for easy previewing and testing of the UI components. The screen is responsive and adapts to different screen sizes, ensuring a consistent user experience across devices. The search functionality and selection mode provide an intuitive way for users to find and manage their photos, similar to the real Google Photos app.
+ *
+ * */
+
+// Search screen: searchable grid of photos with selection support and drag-to-select.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(
@@ -51,12 +64,15 @@ fun SearchScreen(
     onNavigate: (String) -> Unit = {},
     viewModel: PhotoSelectionViewModel = viewModel()
 ) {
+    // Search text state
     var searchQuery by remember { mutableStateOf("") }
+
+    // Selection-related state from the ViewModel
     val isSelectionMode by viewModel.isSelectionMode.collectAsState()
     val photoList by viewModel.photos.collectAsState()
     val selectedCount by viewModel.selectedCount.collectAsState()
 
-    // Initialize ViewModel with photos data (convert URLs to Photo objects)
+    // Initialize ViewModel with photos (convert URLs to Photo objects)
     LaunchedEffect(photos) {
         val photoObjects = photos.mapIndexed { index, url ->
             com.example.photoclone.data.model.Photo(
@@ -68,14 +84,14 @@ fun SearchScreen(
         viewModel.setPhotos(photoObjects)
     }
 
-    // Filter photos based on search query
+    // Filter photos by the search query (case-insensitive)
     val filteredPhotos = if (searchQuery.isEmpty()) {
         photoList
     } else {
         photoList.filter { it.imageUrl.contains(searchQuery, ignoreCase = true) }
     }
 
-    // Build navigation items
+    // Bottom navigation items for the screen
     val navigationItems = listOf(
         BottomNavItem(
             title = stringResource(R.string.photos),
@@ -103,6 +119,7 @@ fun SearchScreen(
 
     Scaffold(
         topBar = {
+            // Top app bar with an inline search TextField
             TopAppBar(
                 title = {
                     TextField(
@@ -124,6 +141,7 @@ fun SearchScreen(
                     )
                 },
                 navigationIcon = {
+                    // Show clear button when query is non-empty
                     if (searchQuery.isNotEmpty()) {
                         IconButton(onClick = { searchQuery = "" }) {
                             Icon(Icons.Default.Close, contentDescription = "Clear search")
@@ -136,6 +154,7 @@ fun SearchScreen(
             )
         },
         bottomBar = {
+            // Standard bottom navigation bar
             PhotoBottomNavigation(
                 items = navigationItems,
                 selectedIndex = selectedIndex,
@@ -146,6 +165,7 @@ fun SearchScreen(
         }
     ) { paddingValues ->
         if (filteredPhotos.isEmpty()) {
+            // Empty / no-results state
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -185,6 +205,7 @@ fun SearchScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
             ) {
+                // Grid showing filtered photos with drag-to-select when selection is active
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(columns),
                     state = gridState,
@@ -201,6 +222,7 @@ fun SearchScreen(
                         .then(if (isSelectionMode) Modifier.pointerInput(Unit) {
                             detectDragGestures(
                                 onDragStart = { offset: Offset ->
+                                    // On drag start, select the visible item under the finger
                                     val info = gridState.layoutInfo
                                     val item = info.visibleItemsInfo.firstOrNull { vi ->
                                         val left = vi.offset.x.toFloat()
@@ -216,6 +238,7 @@ fun SearchScreen(
                                     }
                                 },
                                 onDrag = { change, _ ->
+                                    // During drag, select any visible item under current pointer
                                     val pos = change.position
                                     val info = gridState.layoutInfo
                                     val item = info.visibleItemsInfo.firstOrNull { vi ->

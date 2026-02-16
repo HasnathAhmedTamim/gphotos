@@ -15,33 +15,31 @@ import androidx.compose.ui.unit.dp
 import com.example.photoclone.data.model.Photo
 
 /**
- * Adaptive grid that chooses a sensible column count based on screen width.
- * Supports occasional larger-spanning items via [bigItemPredicate].
- * If `columns` is provided, it will be used instead of calculating from width
- * Accepts an optional [state] so callers can read layout info for gestures (e.g., drag-to-select).
+ * Adaptive grid that picks a sensible column count from screen width.
+ * Supports occasional larger items via [bigItemPredicate].
  */
 @Composable
 fun AdaptivePhotoGrid(
-    photos: List<Photo>,
+    photos: List<Photo>, // items to show
     modifier: Modifier = Modifier,
-    contentPadding: PaddingValues = PaddingValues(2.dp),
-    gutter: Dp = 2.dp,
-    columns: Int? = null,
-    state: LazyGridState? = null,
-    bigItemPredicate: (index: Int, photo: Photo) -> Boolean = { _, _ -> false },
+    contentPadding: PaddingValues = PaddingValues(2.dp), // outer padding
+    gutter: Dp = 2.dp, // space between items
+    columns: Int? = null, // override column calculation when provided
+    state: LazyGridState? = null, // optional state for scroll/gestures
+    bigItemPredicate: (index: Int, photo: Photo) -> Boolean = { _, _ -> false }, // span selector
     itemContent: @Composable (index: Int, photo: Photo, imageRequestSizePx: Int?, itemModifier: Modifier) -> Unit
 ) {
-    // Use the window container size (pixels) converted to dp to determine columns; this avoids the
-    // lint warning about Configuration.screenWidthDp.
+    // Window width in dp (avoids Configuration.screenWidthDp lint)
     val windowInfo = LocalWindowInfo.current
     val widthDp = with(LocalDensity.current) { windowInfo.containerSize.width.toDp().value.toInt() }
 
+    // Use provided columns or compute from width
     val computedColumns = columns ?: calculateColumnsForWidth(widthDp)
 
-    // Ensure we always have a non-null state to pass to LazyVerticalGrid
+    // Ensure a non-null LazyGridState
     val gridState = state ?: rememberLazyGridState()
 
-    // Compute per-item pixel size to request from the image loader. We subtract gutters/padding.
+    // Compute item pixel size for image requests (subtract gutters/padding)
     val density = LocalDensity.current
     val totalGutterDp = (computedColumns + 1) * gutter.value
     val availableDp = widthDp - totalGutterDp
@@ -56,12 +54,13 @@ fun AdaptivePhotoGrid(
         horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(gutter),
         verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(gutter)
     ) {
-        // Use explicit items via the LazyGridScope.item { } so we can control spans per-item.
+        // Emit each photo item and optionally let some span multiple columns
         photos.forEachIndexed { index, photo ->
             val span = if (bigItemPredicate(index, photo)) computedColumns else 1
             item(span = { GridItemSpan(span) }) {
-                // Provide a per-item modifier so callers can add item animations or other modifiers.
+                // Request a larger image for multi-column items
                 val requestSize = if (span == 1) itemPx else itemPx * computedColumns
+                // Pass a per-item modifier so callers can add animations
                 itemContent(index, photo, requestSize, Modifier.animateItem())
             }
         }

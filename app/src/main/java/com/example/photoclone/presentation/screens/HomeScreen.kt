@@ -114,9 +114,18 @@ fun HomeScreen(
         Photo(id = index.toLong(), imageUrl = url, thumbnailUrl = url)
     }
 
+    // If we're using the fallback demo photos, register them into the ViewModel so selection state works
+    LaunchedEffect(photoObjects.isEmpty()) {
+        if (photoObjects.isEmpty()) {
+            // Provide the in-memory displayPhotos to the ViewModel so its selection flows can update UI
+            viewModel.setPhotos(displayPhotos)
+        }
+    }
+
     // Observe selection state
     val selectedCount by viewModel.selectedCount.collectAsState()
     val isSelectionMode by viewModel.isSelectionMode.collectAsState()
+    val selectedUris by viewModel.selectedUris.collectAsState()
 
     // Derived state: show selection bottom sheet only when in selection mode and items selected
     val showBottomSheet by remember(selectedCount, isSelectionMode) {
@@ -275,61 +284,103 @@ fun HomeScreen(
                             .fillMaxSize()
                             .pointerInput(Unit) {
                                 detectTransformGestures { _, _, zoom, _ ->
-                                    if (zoom > 1f) columns = (columns - 1).coerceAtLeast(2) else if (zoom < 1f) columns = (columns + 1).coerceAtMost(6)
+                                    // Apply a small threshold to avoid oscillation on tiny pinch gestures
+                                    if (zoom > 1.05f) {
+                                        columns = (columns - 1).coerceAtLeast(2)
+                                    } else if (zoom < 0.95f) {
+                                        columns = (columns + 1).coerceAtMost(6)
+                                    }
                                 }
                             }
                             .then(if (isSelectionMode) Modifier.pointerInput(Unit) {
-                                detectDragGestures(onDragStart = { /* skip drag-select for paging */ }, onDrag = { change, _ -> change.consume() })
-                            } else Modifier),
-                        contentPadding = PaddingValues(4.dp),
-                        gutter = 4.dp,
-                        columns = columns,
-                        state = gridState
-                    ) { index, photo, imageRequestSizePx, itemModifier ->
-                        photo?.let { p ->
-                            SelectablePhotoGridItem(
-                                imageUrl = p.imageUrl,
-                                isSelected = p.isSelected,
-                                isSelectionMode = isSelectionMode,
-                                onClick = {
-                                    if (isSelectionMode) {
-                                        viewModel.toggleSelection(p)
-                                    } else {
-                                        // Build a small pager window around the tapped index so the viewer can swipe locally
-                                        val windowRadius = 10
-                                        val start = (index - windowRadius).coerceAtLeast(0)
-                                        val end = (index + windowRadius)
-                                        val window = mutableListOf<String>()
-                                        var initialPosInWindow = 0
-                                        for (i in start..end) {
-                                            val item = pagingItems[i]
-                                            if (item != null) {
-                                                if (i == index) initialPosInWindow = window.size
-                                                window += item.imageUrl
+                                detectDragGestures(
+                                    onDragStart = { offset: Offset ->
+                                        // On drag start, try to select the visible item under the pointer for paging
+                                        val info = gridState.layoutInfo
+                                        val item = info.visibleItemsInfo.firstOrNull { vi ->
+                                            val left = vi.offset.x.toFloat()
+                                            val top = vi.offset.y.toFloat()
+                                            val right = (vi.offset.x + vi.size.width).toFloat()
+                                            val bottom = (vi.offset.y + vi.size.height).toFloat()
+                                            offset.x >= left && offset.x <= right && offset.y >= top && offset.y <= bottom
+                                        }
+                                        item?.let { vi ->
+                                            val p = pagingItems[vi.index]
+                                            p?.let { photo ->
+                                                viewModel.setSelectionByUri(photo.imageUrl, true)
                                             }
                                         }
-                                        pagerWindow = window
-                                        selectedPhotoIndex = initialPosInWindow
-                                        showPager = true
+                                    },
+                                    onDrag = { change, _ ->
+                                        val pos = change.position
+                                        val info = gridState.layoutInfo
+                                        val item = info.visibleItemsInfo.firstOrNull { vi ->
+                                            val left = vi.offset.x.toFloat()
+                                            val top = vi.offset.y.toFloat()
+                                            val right = (vi.offset.x + vi.size.width).toFloat()
+                                            val bottom = (vi.offset.y + vi.size.height).toFloat()
+                                            pos.x >= left && pos.x <= right && pos.y >= top && pos.y <= bottom
+                                        }
+                                        item?.let { vi ->
+                                            val p = pagingItems[vi.index]
+                                            p?.let { photo ->
+                                                viewModel.setSelectionByUri(photo.imageUrl, true)
+                                            }
+                                        }
+                                        change.consume()
                                     }
-                                },
-                                onLongPress = { if (!isSelectionMode) viewModel.startSelectionMode(p) },
-                                modifier = itemModifier,
-                                imageRequestSizePx = imageRequestSizePx
-                            )
-                        }
-                    }
-                } else {
+                                )
+                            } else Modifier),
+                         contentPadding = PaddingValues(4.dp),
+                         gutter = 4.dp,
+                         columns = columns,
+                         state = gridState
+                     ) { index, photo, imageRequestSizePx, itemModifier ->
+                         photo?.let { p ->
+                            SelectablePhotoGridItem(
+                                imageUrl = p.imageUrl,
+                                isSelected = selectedUris.contains(p.imageUrl),
+                                isSelectionMode = isSelectionMode,
+                                onClick = {
+                                     if (isSelectionMode) {
+                                         // toggle selection by URI so paging items work
+                                         viewModel.toggleSelectionByUri(p.imageUrl)
+                                     } else {
+                                         // Build a small pager window around the tapped index so the viewer can swipe locally
+                                         val windowRadius = 10
+                                         val start = (index - windowRadius).coerceAtLeast(0)
+                                         val end = (index + windowRadius)
+                                         val window = mutableListOf<String>()
+                                         var initialPosInWindow = 0
+                                         for (i in start..end) {
+                                             val item = pagingItems[i]
+                                             if (item != null) {
+                                                 if (i == index) initialPosInWindow = window.size
+                                                 window += item.imageUrl
+                                             }
+                                         }
+                                         pagerWindow = window
+                                         selectedPhotoIndex = initialPosInWindow
+                                         showPager = true
+                                     }
+                                 },
+                                 onLongPress = { if (!isSelectionMode) viewModel.setSelectionByUri(p.imageUrl, true) },
+                                 modifier = itemModifier,
+                                 imageRequestSizePx = imageRequestSizePx
+                             )
+                         }
+                     }
+                 } else {
                     AdaptivePhotoGrid(
-                        photos = displayPhotos,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .pointerInput(Unit) {
+                         photos = displayPhotos,
+                         modifier = Modifier
+                             .fillMaxSize()
+                             .pointerInput(Unit) {
                                 detectTransformGestures { _, _, zoom, _ ->
-                                    if (zoom > 1f) columns = (columns - 1).coerceAtLeast(2) else if (zoom < 1f) columns = (columns + 1).coerceAtMost(6)
+                                    if (zoom > 1.05f) columns = (columns - 1).coerceAtLeast(2) else if (zoom < 0.95f) columns = (columns + 1).coerceAtMost(6)
                                 }
-                            }
-                            .then(if (isSelectionMode) Modifier.pointerInput(Unit) {
+                             }
+                             .then(if (isSelectionMode) Modifier.pointerInput(Unit) {
                                 detectDragGestures(
                                     onDragStart = { offset: Offset ->
                                         val info = gridState.layoutInfo
@@ -337,7 +388,7 @@ fun HomeScreen(
                                             val left = vi.offset.x.toFloat(); val top = vi.offset.y.toFloat(); val right = (vi.offset.x + vi.size.width).toFloat(); val bottom = (vi.offset.y + vi.size.height).toFloat()
                                             offset.x >= left && offset.x <= right && offset.y >= top && offset.y <= bottom
                                         }
-                                        item?.let { vi -> displayPhotos.getOrNull(vi.index)?.let { photo -> viewModel.setSelection(photo, true) } }
+                                        item?.let { vi -> displayPhotos.getOrNull(vi.index)?.let { photo -> viewModel.setSelectionByUri(photo.imageUrl, true) } }
                                     },
                                     onDrag = { change, _ ->
                                         val pos = change.position
@@ -346,17 +397,17 @@ fun HomeScreen(
                                             val left = vi.offset.x.toFloat(); val top = vi.offset.y.toFloat(); val right = (vi.offset.x + vi.size.width).toFloat(); val bottom = (vi.offset.y + vi.size.height).toFloat()
                                             pos.x >= left && pos.x <= right && pos.y >= top && pos.y <= bottom
                                         }
-                                        item?.let { vi -> displayPhotos.getOrNull(vi.index)?.let { photo -> viewModel.setSelection(photo, true) } }
+                                        item?.let { vi -> displayPhotos.getOrNull(vi.index)?.let { photo -> viewModel.setSelectionByUri(photo.imageUrl, true) } }
                                         change.consume()
                                     }
                                 )
-                            } else Modifier),
-                        contentPadding = PaddingValues(4.dp),
-                        gutter = 4.dp,
-                        columns = columns,
-                        state = gridState
-                    ) { index, photo, imageRequestSizePx, itemModifier ->
-                        SelectablePhotoGridItem(
+                             } else Modifier),
+                         contentPadding = PaddingValues(4.dp),
+                         gutter = 4.dp,
+                         columns = columns,
+                         state = gridState
+                     ) { index, photo, imageRequestSizePx, itemModifier ->
+                         SelectablePhotoGridItem(
                             imageUrl = photo.imageUrl,
                             isSelected = photo.isSelected,
                             isSelectionMode = isSelectionMode,
@@ -366,10 +417,10 @@ fun HomeScreen(
                             onLongPress = { if (!isSelectionMode) viewModel.startSelectionMode(photo) },
                             modifier = itemModifier,
                             imageRequestSizePx = imageRequestSizePx
-                        )
-                    }
-                }
-            }
+                         )
+                     }
+                 }
+             }
 
             // Debug banner to help diagnose device issues (shown only when BuildConfig.DEBUG is true).
             val debugMode = remember {

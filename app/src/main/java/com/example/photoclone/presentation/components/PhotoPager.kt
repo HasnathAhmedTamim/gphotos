@@ -1,5 +1,6 @@
 package com.example.photoclone.presentation.components
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -27,7 +28,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.graphicsLayer
 import com.example.photoclone.R
-
 
 /**
  * Full-screen photo pager with tap-to-toggle chrome and basic pinch/double-tap zoom.
@@ -57,6 +57,11 @@ fun PhotoPager(
     var chromeVisible by rememberSaveable { mutableStateOf(true) }
 
     Box(modifier = modifier.fillMaxSize()) {
+        // Intercept system back to dismiss the pager instead of closing the app
+        BackHandler(enabled = true) {
+            onDismiss()
+        }
+
         // HorizontalPager: disable user scroll when zoomed on the active page
         HorizontalPager(
             state = pagerState,
@@ -71,11 +76,12 @@ fun PhotoPager(
             var offset by remember { mutableStateOf(Offset.Zero) }
 
             val transformState = rememberTransformableState { zoomChange, pan, _ ->
-                // Update local scale and offset directly (coarse, but fast)
+                // Update local scale within reasonable bounds and update translation
                 val newScale = (localScale * zoomChange).coerceIn(1f, 4f)
+                // Adjust offset by pan (pan is in pixels)
+                offset += pan
                 localScale = newScale
                 targetScale = newScale
-                offset += pan
             }
 
             // If this page is active, propagate the scale to the parent-tracked pageScale
@@ -92,34 +98,39 @@ fun PhotoPager(
                 }
             }
 
-            // Image receives tap gestures to toggle chrome; double-tap toggles zoom
-            PhotoImage(
-                imageUrl = photoUrls[page],
-                contentDescription = stringResource(R.string.photo_index_description, page + 1, photoUrls.size),
-                modifier = Modifier
-                    .fillMaxSize()
-                    .pointerInput(Unit) {
-                        detectTapGestures(
-                            onTap = { chromeVisible = !chromeVisible },
-                            onDoubleTap = {
-                                // Double-tap toggles between 1x and 2x
-                                val new = if (animatedScale > 1.5f) 1f else 2f
-                                targetScale = new
-                                localScale = new
-                            }
-                        )
-                    }
-                    .transformable(state = transformState)
-                    .graphicsLayer {
-                        scaleX = animatedScale
-                        scaleY = animatedScale
-                        translationX = offset.x
-                        translationY = offset.y
-                    },
-                contentScale = ContentScale.Fit,
-                requestSizePx = null,
-                showPlaceholder = true
-            )
+            // Image receives transform gestures then tap gestures to toggle chrome; double-tap toggles zoom
+            if (photoUrls.isNotEmpty()) {
+                val url = photoUrls[page]
+                PhotoImage(
+                    imageUrl = url,
+                    contentDescription = stringResource(R.string.photo_index_description, page + 1, photoUrls.size),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .transformable(state = transformState)
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onTap = { chromeVisible = !chromeVisible },
+                                onDoubleTap = {
+                                    // Double-tap toggles between 1x and 2x and recenters translation
+                                    val new = if (animatedScale > 1.5f) 1f else 2f
+                                    targetScale = new
+                                    localScale = new
+                                    // Reset offset on zoom change for predictability
+                                    offset = Offset.Zero
+                                }
+                            )
+                        }
+                        .graphicsLayer {
+                            scaleX = animatedScale
+                            scaleY = animatedScale
+                            translationX = offset.x
+                            translationY = offset.y
+                        },
+                    contentScale = ContentScale.Fit,
+                    requestSizePx = null,
+                    showPlaceholder = true
+                )
+            }
         }
 
         // Top-left back button overlay (animated)
@@ -134,7 +145,7 @@ fun PhotoPager(
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.TopStart) {
                 IconButton(onClick = onDismiss, modifier = Modifier.padding(4.dp)) {
                     Icon(
-                        imageVector = Icons.Filled.ArrowBack,
+                        imageVector = Icons.Default.ArrowBack,
                         contentDescription = stringResource(R.string.back),
                         tint = MaterialTheme.colorScheme.onSurface
                     )

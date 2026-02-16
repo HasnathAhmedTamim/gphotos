@@ -94,4 +94,11 @@ dependencies {
     // optional - Paging 3
     implementation("androidx.paging:paging-runtime:3.1.1")
     implementation("androidx.paging:paging-compose:1.0.0-alpha18")
+
+    // Note: accompanist-shared-element removed to avoid resolution issues; using built-in crossfade transitions instead.
+}
+
+// Prevent Gradle attempting to fetch a missing accompanist-shared-element transitively by excluding it globally.
+configurations.all {
+    exclude(group = "com.google.accompanist", module = "accompanist-shared-element")
 }

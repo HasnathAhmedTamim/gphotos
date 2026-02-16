@@ -52,12 +52,37 @@ class PhotoSelectionViewModel : ViewModel() {
     private val _isSelectionMode = MutableStateFlow(false)
     val isSelectionMode: StateFlow<Boolean> = _isSelectionMode.asStateFlow()
 
+    // Track selected URIs (works with paging where Photo instances are ephemeral)
+    private val _selectedUris = MutableStateFlow<Set<String>>(emptySet())
+    val selectedUris: StateFlow<Set<String>> = _selectedUris.asStateFlow()
+
     // Job for managing the coroutine that collects picked images
     private var pickedImagesCollectJob: Job? = null
 
+    // Update selection state flows to reflect selectedUris as the source of truth for selection count/mode
+    private fun syncSelectionFromUris() {
+        // Update selectedCount and isSelectionMode based on selectedUris
+        _selectedCount.value = _selectedUris.value.size
+        _isSelectionMode.value = _selectedUris.value.isNotEmpty()
+        // Also update _selectedPhotos for non-paged mode to keep UI consistent
+        val photos = _photos.value
+        if (photos.isNotEmpty()) {
+            val updated = photos.map { photo ->
+                photo.copy(isSelected = _selectedUris.value.contains(photo.imageUrl))
+            }
+            _photos.value = updated
+            _selectedPhotos.value = updated.filter { it.isSelected }
+        } else {
+            _selectedPhotos.value = emptyList()
+        }
+    }
+
     // Replace the current list of photos (e.g., when screen data updates)
     fun setPhotos(photos: List<Photo>) {
-        _photos.value = photos
+        val updated = photos.map { p ->
+            if (_selectedUris.value.contains(p.imageUrl)) p.copy(isSelected = true) else p.copy(isSelected = false)
+        }
+        _photos.value = updated
         updateSelectionState()
     }
 
@@ -84,58 +109,50 @@ class PhotoSelectionViewModel : ViewModel() {
         }
     }
 
-    // Toggle selection for a single photo (tap in selection mode)
+    // Toggle selection by Photo object (keeps old API compatible)
     fun toggleSelection(photo: Photo) {
-        val currentPhotos = _photos.value.toMutableList()
-        val index = currentPhotos.indexOfFirst { it.id == photo.id }
-        if (index != -1) {
-            currentPhotos[index] = currentPhotos[index].copy(isSelected = !currentPhotos[index].isSelected)
-            _photos.value = currentPhotos
-            updateSelectionState()
-        }
+        toggleSelectionByUri(photo.imageUrl)
     }
 
-    // Enter selection mode and select the provided photo (used on long-press)
+    // Start selection by Photo (old API)
     fun startSelectionMode(photo: Photo) {
-        _isSelectionMode.value = true
-        val currentPhotos = _photos.value.toMutableList()
-        val index = currentPhotos.indexOfFirst { it.id == photo.id }
-        if (index != -1) {
-            currentPhotos[index] = currentPhotos[index].copy(isSelected = true)
-            _photos.value = currentPhotos
-            updateSelectionState()
+        setSelectionByUri(photo.imageUrl, true)
+    }
+
+    // New API: toggle selection by Uri (works for paging)
+    fun toggleSelectionByUri(uri: String) {
+        val current = _selectedUris.value.toMutableSet()
+        if (current.contains(uri)) current.remove(uri) else current.add(uri)
+        _selectedUris.value = current
+        syncSelectionFromUris()
+    }
+
+    // New API: set selection by Uri
+    fun setSelectionByUri(uri: String, selected: Boolean) {
+        val current = _selectedUris.value.toMutableSet()
+        val changed = if (selected) current.add(uri) else current.remove(uri)
+        if (changed) {
+            _selectedUris.value = current
+            syncSelectionFromUris()
         }
     }
 
-    // New API: set explicit selection state for a photo (used for drag-to-select)
+    // Backwards-compatible API: set selection by Photo instance
     fun setSelection(photo: Photo, selected: Boolean) {
-        val currentPhotos = _photos.value.toMutableList()
-        val index = currentPhotos.indexOfFirst { it.id == photo.id }
-        if (index != -1 && currentPhotos[index].isSelected != selected) {
-            currentPhotos[index] = currentPhotos[index].copy(isSelected = selected)
-            _photos.value = currentPhotos
-            if (selected) {
-                _isSelectionMode.value = true
-            }
-            updateSelectionState()
-        }
+        setSelectionByUri(photo.imageUrl, selected)
     }
 
     // Clear all selection and exit selection mode
     fun clearSelection() {
-        val currentPhotos = _photos.value.map { it.copy(isSelected = false) }
-        _photos.value = currentPhotos
-        _isSelectionMode.value = false
-        _selectedPhotos.value = emptyList()
-        _selectedCount.value = 0
+        // Clear selected URIs (source of truth) and sync derived state
+        _selectedUris.value = emptySet()
+        syncSelectionFromUris()
     }
 
     // Internal helper to sync selectedPhotos, selectedCount, and selection mode
     private fun updateSelectionState() {
-        val selected = _photos.value.filter { it.isSelected }
-        _selectedPhotos.value = selected
-        _selectedCount.value = selected.size
-        _isSelectionMode.value = selected.isNotEmpty()
+        // Delegate to the central sync routine which uses _selectedUris as source of truth
+        syncSelectionFromUris()
     }
 
     // Archive selected items, then clear selection (TODO: wire to data layer)
@@ -220,7 +237,7 @@ class PhotoSelectionViewModel : ViewModel() {
         pickedImagesCollectJob?.cancel()
         pickedImagesCollectJob = viewModelScope.launch {
             repo.getPickedImages().collect { list ->
-                val mapped = list.mapIndexed { index, picked ->
+                val mapped = list.map { picked ->
                     Photo(id = picked.id, imageUrl = picked.uri, thumbnailUrl = picked.uri)
                 }
                 _photos.value = mapped

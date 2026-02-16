@@ -21,6 +21,16 @@ import com.example.photoclone.presentation.components.BottomNavItem
 import com.example.photoclone.presentation.components.PhotoBottomNavigation
 import com.example.photoclone.presentation.components.PhotoTopAppBar
 
+/**
+ *  Create screen where users can start creating new content using various tools.
+ *  The screen is structured with a top app bar, a central Create button, a section for "Your tools" showing available creation tools, and a bottom navigation bar.
+ *  - The top app bar includes the app logo and action icons for adding content, viewing notifications, and accessing the user profile.
+ *  - The central area features a prominent "Create" button that users can tap to start the creation process. Below it, there's a "Your tools" section that displays a grid of available creation tools (like Remix, Collage, Highlight video, etc.) that users can use to create new content from their photos.
+ *  - The bottom navigation bar allows users to switch between different sections of the app (Photos, Collection, Create, Search).
+ *  The UI is designed to closely mimic the look and feel of the Google Photos app, with attention to theming, typography, and layout. The use of sample data allows for easy previewing and testing of the UI components. The screen is responsive and adapts to different screen sizes, ensuring a consistent user experience across devices. The creation tools are interactive, allowing users to tap on them to start the corresponding creation process.
+ *
+ * */
+// Simple model for a create-tool card shown on the Create screen
 data class CreateTool(
     val icon: ImageVector,
     val title: String,
@@ -37,7 +47,7 @@ fun CreateScreen(
     onNavigate: (String) -> Unit = {},
     onCreateClick: () -> Unit = {}
 ) {
-    // Tools data
+    // Tools data: the small cards shown under the Create button
     val tools = listOf(
         CreateTool(
             icon = Icons.Outlined.AutoFixHigh,
@@ -61,7 +71,7 @@ fun CreateScreen(
         )
     )
 
-    // Bottom navigation items
+    // Bottom navigation items for the screen
     val navigationItems = listOf<BottomNavItem>(
         BottomNavItem(
             title = stringResource(R.string.photos),
@@ -85,11 +95,12 @@ fun CreateScreen(
         )
     )
 
-    // Sync selectedIndex with currentRoute
+    // Sync selectedIndex with currentRoute (for bottom navigation highlighting)
     val selectedIndex = navigationItems.indexOfFirst { it.route == currentRoute }.takeIf { it >= 0 } ?: 2
 
     Scaffold(
         topBar = {
+            // App top bar with logo and actions
             PhotoTopAppBar(
                 onAddClick = onAddClick,
                 onNotificationClick = onNotificationClick,
@@ -97,6 +108,7 @@ fun CreateScreen(
             )
         },
         bottomBar = {
+            // Bottom navigation bar
             PhotoBottomNavigation(
                 items = navigationItems,
                 selectedIndex = selectedIndex,
@@ -113,7 +125,7 @@ fun CreateScreen(
                 .padding(padding)
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            // Center content with Create button
+            // Center content with primary Create button
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -141,7 +153,7 @@ fun CreateScreen(
                 }
             }
 
-            // Your tools section
+            // 'Your tools' header and grid of tool cards
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -155,7 +167,7 @@ fun CreateScreen(
                     modifier = Modifier.padding(bottom = 24.dp)
                 )
 
-                // Tool cards in grid layout
+                // Tool cards arranged in rows
                 Column(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
@@ -211,6 +223,7 @@ fun ToolCard(
     tool: CreateTool,
     modifier: Modifier = Modifier
 ) {
+    // Small card representing a create tool (icon + title)
     Card(
         modifier = modifier
             .height(120.dp)

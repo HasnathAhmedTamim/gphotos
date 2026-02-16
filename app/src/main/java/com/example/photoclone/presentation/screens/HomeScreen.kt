@@ -120,7 +120,10 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             // Show selection top bar when in selection mode, otherwise app top bar
-            if (isSelectionMode) {
+            if (showPager) {
+                // No top bar while full-screen pager is visible (pager provides its own back overlay)
+                null
+            } else if (isSelectionMode) {
                 TopAppBar(
                     title = {
                         Text("$selectedCount selected")

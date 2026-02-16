@@ -21,6 +21,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.photoclone.R
 
+/**
+ * Component for the top app bar in the Google Photos clone. It includes the app logo on the left,
+ * and action icons (add, notifications, profile) on the right. The colors and typography are designed to match the Google Photos style, and it adapts to light/dark themes. Each icon has a callback for user interaction, allowing the parent screen to handle navigation or actions when the user taps on them.
+ * The top app bar is a key part of the UI, providing access to important features and reinforcing the app's branding with the logo. The use of vector icons and theming ensures that it looks good on different screen sizes and in different modes (light/dark). The layout is designed to be clean and functional, similar to the real Google Photos app.
+ * */
+
+// Top app bar with logo and action icons (add, notifications, profile).
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PhotoTopAppBar(
@@ -34,7 +41,7 @@ fun PhotoTopAppBar(
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Updated to use the new Google Photos PNG logo
+                // App logo (PNG) shown at the start of the top bar
                 Image(
                     painter = painterResource(R.drawable.google_photos_logo),
                     contentDescription = "Google Photos Logo",
@@ -54,7 +61,7 @@ fun PhotoTopAppBar(
             }
         },
         actions = {
-            // CHANGE 3: Add proper spacing and colors for icons
+            // Add button (primary action)
             IconButton(
                 onClick = onAddClick,
                 modifier = Modifier.size(48.dp)
@@ -65,6 +72,8 @@ fun PhotoTopAppBar(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+
+            // Notifications button
             IconButton(
                 onClick = onNotificationClick,
                 modifier = Modifier.size(48.dp)
@@ -75,6 +84,8 @@ fun PhotoTopAppBar(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+
+            // Profile button (avatar icon)
             IconButton(
                 onClick = onProfileClick,
                 modifier = Modifier.size(48.dp)
@@ -87,7 +98,7 @@ fun PhotoTopAppBar(
                 )
             }
         },
-        // Updated colors to adapt to light/dark mode
+        // Colors adapt to light/dark mode
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.surface,
             titleContentColor = MaterialTheme.colorScheme.onSurface,

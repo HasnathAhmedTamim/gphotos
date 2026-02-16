@@ -18,7 +18,22 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-
+/**
+ * Composable function for the bottom sheet that appears when photos are selected, showing available actions.
+ * The sheet expands in height when items are selected to accommodate the action buttons, and collapses when no items are selected.
+ * Each action is represented by an icon and a label, and triggers a callback when tapped.
+ * @param selectedCount The number of photos currently selected, used to determine the height of the bottom sheet and the header text.
+ * @param onClear Callback to be invoked when the user clicks the "Clear" button to deselect all photos.
+ * @param onShare Callback to be invoked when the user clicks the "Share" action button.
+ * @param onAddToAlbum Callback to be invoked when the user clicks the "Add to album" action button.
+ * @param onCreate Callback to be invoked when the user clicks the "Create" action button.
+ * @param onDelete Callback to be invoked when the user clicks the "Bin" action button.
+ * @param onBackup Callback to be invoked when the user clicks the "Backup" action button.
+ * @param onArchive Callback to be invoked when the user clicks the "Archive" action button.
+ * @param onMoveToLocked Callback to be invoked when the user clicks the "Move to locked folder" action button.
+ *
+ * */
+// Bottom sheet shown when photos are selected; provides bulk actions.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SelectionBottomSheet(
@@ -33,10 +48,9 @@ fun SelectionBottomSheet(
     onArchive: () -> Unit,
     onMoveToLocked: () -> Unit
 ) {
-    // Increase base height and expanded height for improved readability
-    val baseHeight = 180.dp // increased earlier so stacked icon+label fits
-    val expandedHeight = 240.dp
-    // Always expand when at least one item is selected so labels are visible
+    // Base and expanded heights control sheet size when items are selected.
+    val baseHeight = 180.dp // small collapsed height
+    val expandedHeight = 240.dp // taller when items selected
     val targetHeight = if (selectedCount > 0) expandedHeight else baseHeight
     val height by animateDpAsState(targetValue = targetHeight)
 
@@ -52,7 +66,7 @@ fun SelectionBottomSheet(
             .fillMaxSize()
             .padding(horizontal = 16.dp)) {
 
-            // Larger handle for affordance
+            // Drag handle for affordance
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -68,7 +82,7 @@ fun SelectionBottomSheet(
                 )
             }
 
-            // Header row: selected count + clear button
+            // Header row: shows how many are selected and a Clear action
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -87,10 +101,10 @@ fun SelectionBottomSheet(
                 }
             }
 
-            // Stronger divider
+            // Strong visual divider
             HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
 
-            // Actions row with larger neutral circular buttons and clearer labels
+            // Horizontally scrollable actions row with circular buttons and labels
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -101,7 +115,7 @@ fun SelectionBottomSheet(
                 val btnContainer = MaterialTheme.colorScheme.surfaceVariant
                 val btnIconTint = MaterialTheme.colorScheme.onSurface // stronger contrast
 
-                // concise, consistent labels under each icon
+                // Each action uses the AccessibleAction helper below
                 AccessibleAction(
                     icon = Icons.Outlined.Share,
                     label = "Share",
@@ -161,12 +175,13 @@ fun SelectionBottomSheet(
                 Spacer(modifier = Modifier.width(8.dp))
             }
 
-            // Extra space when expanded
+            // Flexible spacer so sheet content aligns nicely when expanded
             Spacer(modifier = Modifier.weight(1f))
         }
     }
 }
 
+// Circular action button with label underneath; sized for accessibility and consistent layout.
 @Composable
 private fun AccessibleAction(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
@@ -177,7 +192,7 @@ private fun AccessibleAction(
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.width(72.dp) // match the Surface size so the label width equals the icon width
+        modifier = Modifier.width(72.dp) // ensure label width matches button
     ) {
         Surface(
             onClick = onClick,

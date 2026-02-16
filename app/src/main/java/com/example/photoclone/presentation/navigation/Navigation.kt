@@ -25,15 +25,31 @@ import com.example.photoclone.presentation.screens.CreateScreen
 import com.example.photoclone.presentation.screens.HomeScreen
 import com.example.photoclone.presentation.screens.SearchScreen
 
+/**
+ *  Main navigation composable that sets up the NavHost and defines all the routes/screens.
+ *  - Uses a single NavController for the entire app.
+ *  - Manages the state of the bottom sheet at this level to ensure it can be triggered from any screen without issues.
+ *  - Implements fade in/out transitions for screen navigation.
+ *  - Handles navigation errors gracefully by logging them.
+ *  - Uses string resources for bottom sheet item titles to support localization and prevent hardcoded strings.
+ *  - Ensures that the bottom sheet state is not recreated on every recomposition, which can cause issues with the sheet's behavior.
+ *  - The bottom sheet content is defined in a separate composable for better organization and reusability.
+ *  - Each screen can trigger the bottom sheet by calling the onAddClick callback, which is passed down from this navigation composable.
+ *
+ * */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PhotoCloneNavigation() {
+    // Single NavController for app navigation
     val navController = rememberNavController()
+
+    // Local UI state to show/hide the create bottom sheet
     var showBottomSheet by remember { mutableStateOf(false) }
 
-    // FIX #2: Move bottom sheet state OUTSIDE the if block to prevent recomposition issues
+    // Keep the sheet state remembered outside the conditional so it survives recompositions
     val bottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
+    // Demo photo URLs used for previewing the grids in the sample screens
     val demoPhotos = List(30) { index ->
         "https://picsum.photos/400/400?seed=$index&blur=${index % 5}"
     }
@@ -42,6 +58,7 @@ fun PhotoCloneNavigation() {
         navController = navController,
         startDestination = Screen.Home.route
     ) {
+        // Home screen route
         composable(
             route = Screen.Home.route,
             enterTransition = { fadeIn(animationSpec = tween(300)) },
@@ -52,7 +69,7 @@ fun PhotoCloneNavigation() {
                 currentRoute = Screen.Home.route,
                 onAddClick = { showBottomSheet = true },
                 onNavigate = { route ->
-                    // FIX #3: Add error handling for navigation
+                    // Safe navigation with try/catch
                     try {
                         navController.navigate(route) {
                             launchSingleTop = true
@@ -65,6 +82,7 @@ fun PhotoCloneNavigation() {
             )
         }
 
+        // Collection screen route
         composable(
             route = Screen.Collection.route,
             enterTransition = { fadeIn(animationSpec = tween(300)) },
@@ -92,6 +110,7 @@ fun PhotoCloneNavigation() {
             )
         }
 
+        // Create screen route
         composable(
             route = Screen.Create.route,
             enterTransition = { fadeIn(animationSpec = tween(300)) },
@@ -122,6 +141,7 @@ fun PhotoCloneNavigation() {
             )
         }
 
+        // Search screen route
         composable(
             route = Screen.Search.route,
             enterTransition = { fadeIn(animationSpec = tween(300)) },
@@ -144,9 +164,9 @@ fun PhotoCloneNavigation() {
         }
     }
 
-    // Bottom Sheet - FIX #2: Bottom sheet state is now reusable outside conditional
+    // Create bottom sheet when requested from any screen
     if (showBottomSheet) {
-        // FIX #4: Create string resources at composable scope level (once per recomposition)
+        // Load localized strings once per composition
         val albumStr = stringResource(R.string.album)
         val collageStr = stringResource(R.string.collage)
         val highlightVideoStr = stringResource(R.string.highlight_video)
@@ -164,7 +184,7 @@ fun PhotoCloneNavigation() {
             CreateBottomSheetContent(
                 onDismiss = { showBottomSheet = false },
                 onItemClick = { item: BottomSheetItem ->
-                    // Handle bottom sheet item click using string resources
+                    // Handle bottom sheet item clicks using localized titles
                     when (item.title) {
                         albumStr -> {
                             // TODO: Create album

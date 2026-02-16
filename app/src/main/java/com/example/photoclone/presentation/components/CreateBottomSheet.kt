@@ -19,13 +19,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.photoclone.presentation.model.BottomSheetItem
 import com.example.photoclone.presentation.model.BottomSheetSection
-
+/**
+ * Composable function to display the content of the bottom sheet when the user clicks the 'Create' button.
+ * This function organizes the content into sections and items, and handles user interactions.
+ * @param onDismiss Callback to be invoked when the user clicks the close button or selects an item.
+ * @param onItemClick Callback to be invoked when the user clicks on a specific item in
+ * the bottom sheet, passing the clicked item as a parameter.
+ * */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateBottomSheetContent(
     onDismiss: () -> Unit,
     onItemClick: (BottomSheetItem) -> Unit
 ) {
+    // Sections shown in the sheet (top-level grouping)
     val sections = listOf(
         BottomSheetSection.CreateNew,
         BottomSheetSection.GetPhotos
@@ -36,7 +43,7 @@ fun CreateBottomSheetContent(
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
     ) {
-        // Header with title and close button
+        // Header row with title and close button
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -65,16 +72,19 @@ fun CreateBottomSheetContent(
             }
         }
 
+        // Scrollable list of sections and their items
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
             sections.forEach { section ->
                 item {
+                    // Section header label
                     SectionHeader(title = section.title)
                 }
 
                 items(section.items) { item ->
+                    // Individual tappable list item
                     BottomSheetListItem(
                         item = item,
                         onClick = {
@@ -94,6 +104,7 @@ fun CreateBottomSheetContent(
 
 @Composable
 fun SectionHeader(title: String) {
+    // Small uppercase section header
     Text(
         text = title.uppercase(),
         style = MaterialTheme.typography.labelSmall.copy(
@@ -113,6 +124,7 @@ fun BottomSheetListItem(
     item: BottomSheetItem,
     onClick: () -> Unit
 ) {
+    // Tappable surface representing an action
     Surface(
         onClick = onClick,
         modifier = Modifier
@@ -127,7 +139,7 @@ fun BottomSheetListItem(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Icon - Using Material Icons
+            // Icon or placeholder space
             if (item.icon != null) {
                 Icon(
                     imageVector = item.icon,
@@ -139,7 +151,7 @@ fun BottomSheetListItem(
                 Spacer(modifier = Modifier.size(24.dp))
             }
 
-            // Text Content
+            // Title / subtitle column
             Column(
                 modifier = Modifier.weight(1f)
             ) {
@@ -147,6 +159,7 @@ fun BottomSheetListItem(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    // Main title text
                     Text(
                         text = item.title,
                         style = MaterialTheme.typography.bodyLarge.copy(
@@ -156,11 +169,13 @@ fun BottomSheetListItem(
                         color = MaterialTheme.colorScheme.onSurface
                     )
 
+                    // Optional 'New' badge
                     if (item.isNew) {
                         NewBadge()
                     }
                 }
 
+                // Optional subtitle under the title
                 if (item.subtitle != null) {
                     Text(
                         text = item.subtitle,
@@ -178,6 +193,7 @@ fun BottomSheetListItem(
 
 @Composable
 fun NewBadge() {
+    // Small pill-shaped 'New' indicator
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(4.dp))

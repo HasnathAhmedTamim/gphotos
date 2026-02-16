@@ -40,6 +40,12 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import coil.size.Size
 import com.example.photoclone.R
+/**
+ * Composable for a photo grid item, used in both the main collection and selection mode.
+ * - Displays a photo from a URL with proper cropping and placeholders.
+ * - In selection mode, shows an overlay and a check icon when selected.
+ * - Pressing the item provides scale feedback, and long-pressing triggers haptic feedback
+ * */
 
 @Suppress("unused")
 @Composable
@@ -50,6 +56,7 @@ fun PhotoGridItem(
     showPlaceholder: Boolean = true,
     imageRequestSizePx: Int? = null
 ) {
+    // Simple, non-selectable photo tile. Shows a placeholder or error drawable when needed.
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(cornerRadius.dp),
@@ -94,6 +101,7 @@ fun SelectablePhotoGridItem(
     cornerRadius: Int = 8,
     imageRequestSizePx: Int? = null
 ) {
+    // Selectable tile with press-scaling, selection overlay, haptic feedback, and a check icon.
     // Press-state interaction for subtle scale feedback
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -135,7 +143,7 @@ fun SelectablePhotoGridItem(
         elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 8.dp else 4.dp)
     ) {
         Box {
-            // Photo image
+            // Photo image with optional sized request for better caching/decoding
             val context = LocalContext.current
             val request = remember(imageUrl, imageRequestSizePx) {
                 val builder = ImageRequest.Builder(context).data(imageUrl).crossfade(true)

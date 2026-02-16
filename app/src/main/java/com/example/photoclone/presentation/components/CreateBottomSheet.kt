@@ -13,12 +13,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.photoclone.R
 import com.example.photoclone.presentation.model.BottomSheetItem
 import com.example.photoclone.presentation.model.BottomSheetSection
+
 /**
  * Composable function to display the content of the bottom sheet when the user clicks the 'Create' button.
  * This function organizes the content into sections and items, and handles user interactions.
@@ -52,7 +55,7 @@ fun CreateBottomSheetContent(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Create",
+                text = stringResource(R.string.create),
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
                     fontSize = 22.sp
@@ -66,7 +69,7 @@ fun CreateBottomSheetContent(
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
-                    contentDescription = "Close",
+                    contentDescription = stringResource(R.string.close),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -80,10 +83,10 @@ fun CreateBottomSheetContent(
             sections.forEach { section ->
                 item {
                     // Section header label
-                    SectionHeader(title = section.title)
+                    SectionHeader(title = stringResource(section.titleRes))
                 }
 
-                items(section.items) { item ->
+                items(section.items, key = { it.id }) { item ->
                     // Individual tappable list item
                     BottomSheetListItem(
                         item = item,
@@ -143,7 +146,7 @@ fun BottomSheetListItem(
             if (item.icon != null) {
                 Icon(
                     imageVector = item.icon,
-                    contentDescription = item.title,
+                    contentDescription = stringResource(item.titleRes),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(24.dp)
                 )
@@ -161,7 +164,7 @@ fun BottomSheetListItem(
                 ) {
                     // Main title text
                     Text(
-                        text = item.title,
+                        text = stringResource(item.titleRes),
                         style = MaterialTheme.typography.bodyLarge.copy(
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold
@@ -176,9 +179,9 @@ fun BottomSheetListItem(
                 }
 
                 // Optional subtitle under the title
-                if (item.subtitle != null) {
+                if (item.subtitleRes != null) {
                     Text(
-                        text = item.subtitle,
+                        text = stringResource(item.subtitleRes),
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontSize = 14.sp
                         ),
@@ -201,7 +204,7 @@ fun NewBadge() {
             .padding(horizontal = 6.dp, vertical = 2.dp)
     ) {
         Text(
-            text = "New",
+            text = stringResource(R.string.badge_new),
             style = MaterialTheme.typography.labelSmall.copy(
                 fontWeight = FontWeight.Bold,
                 fontSize = 10.sp

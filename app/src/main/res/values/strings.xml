@@ -5,7 +5,7 @@
     <string name="create">Create</string>
     <string name="search">Search</string>
     <string name="no_photos">No photos to display</string>
-    <string name="loading">Loading...</string>
+    <string name="loading">Loading…</string>
     <!-- Bottom Sheet Actions -->
     <string name="album">Album</string>
     <string name="collage">Collage</string>
@@ -15,6 +15,23 @@
     <string name="remix">Remix</string>
     <string name="share_with_partner">Share with a partner</string>
     <string name="import_from_other_places">Import from other places</string>
+    <!-- Additional UI / accessibility strings -->
+    <string name="close">Close</string>
+    <string name="badge_new">New</string>
+    <string name="get_photos_title">Get photos</string>
+    <string name="photo_content_description">Photo</string>
+    <string name="photo_selected">Selected</string>
+    <string name="photo_not_selected">Not selected</string>
+    <string name="back">Back</string>
+    <string name="photo_index_description">Photo %1$d of %2$d</string>
+    <!-- Profile -->
+    <string name="profile">Profile</string>
+    <string name="manage_account">Manage your Google Account</string>
+    <string name="photos_settings">Photos settings</string>
+    <string name="backup_status">Backup status</string>
+    <string name="sign_out">Sign out</string>
+    <string name="profile_avatar">Profile avatar</string>
+    <string name="storage">Storage</string>
     <!-- Error Messages -->
     <string name="navigation_error">Failed to navigate. Please try again.</string>
 </resources>

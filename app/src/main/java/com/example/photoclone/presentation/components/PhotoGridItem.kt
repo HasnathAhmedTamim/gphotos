@@ -32,14 +32,15 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import coil.size.Size
 import com.example.photoclone.R
+
 /**
  * Composable for a photo grid item, used in both the main collection and selection mode.
  * - Displays a photo from a URL with proper cropping and placeholders.
@@ -67,23 +68,13 @@ fun PhotoGridItem(
                 .clip(RoundedCornerShape(cornerRadius.dp)),
             contentAlignment = Alignment.Center
         ) {
-            val context = LocalContext.current
-            val request = remember(imageUrl, imageRequestSizePx) {
-                val builder = ImageRequest.Builder(context).data(imageUrl).crossfade(true)
-                imageRequestSizePx?.let { builder.size(Size(it, it)) }
-                builder.allowHardware(true)
-                builder.build()
-            }
-
-            AsyncImage(
-                model = request,
-                contentDescription = "Photo",
-                contentScale = ContentScale.Crop,
+            PhotoImage(
+                imageUrl = imageUrl,
+                contentDescription = stringResource(R.string.photo_content_description),
                 modifier = Modifier.fillMaxSize(),
-                placeholder = if (showPlaceholder) {
-                    painterResource(R.drawable.ic_photo_placeholder)
-                } else null,
-                error = painterResource(R.drawable.ic_broken_image)
+                contentScale = ContentScale.Crop,
+                requestSizePx = imageRequestSizePx,
+                showPlaceholder = showPlaceholder
             )
         }
     }
@@ -117,6 +108,10 @@ fun SelectablePhotoGridItem(
 
     val haptic = LocalHapticFeedback.current
 
+    // Compute localized strings in composable context so they can be used inside non-composable semantics builder
+    val contentDesc = stringResource(R.string.photo_content_description)
+    val stateDesc = if (isSelected) stringResource(R.string.photo_selected) else stringResource(R.string.photo_not_selected)
+
     Card(
         modifier = modifier
             .clip(RoundedCornerShape(cornerRadius.dp))
@@ -136,29 +131,20 @@ fun SelectablePhotoGridItem(
                 }
             )
             .semantics {
-                contentDescription = "Photo"
-                stateDescription = if (isSelected) "selected" else "not selected"
+                contentDescription = contentDesc
+                stateDescription = stateDesc
             },
         shape = RoundedCornerShape(cornerRadius.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 8.dp else 4.dp)
     ) {
         Box {
-            // Photo image with optional sized request for better caching/decoding
-            val context = LocalContext.current
-            val request = remember(imageUrl, imageRequestSizePx) {
-                val builder = ImageRequest.Builder(context).data(imageUrl).crossfade(true)
-                imageRequestSizePx?.let { builder.size(Size(it, it)) }
-                builder.allowHardware(true)
-                builder.build()
-            }
-
-            AsyncImage(
-                model = request,
-                contentDescription = "Photo",
-                contentScale = ContentScale.Crop,
+            PhotoImage(
+                imageUrl = imageUrl,
+                contentDescription = contentDesc,
                 modifier = Modifier.fillMaxSize(),
-                placeholder = painterResource(R.drawable.ic_photo_placeholder),
-                error = painterResource(R.drawable.ic_broken_image)
+                contentScale = ContentScale.Crop,
+                requestSizePx = imageRequestSizePx,
+                showPlaceholder = true
             )
 
             // Selection overlay (animated alpha)
@@ -178,7 +164,7 @@ fun SelectablePhotoGridItem(
             ) {
                 Icon(
                     imageVector = Icons.Default.CheckCircle,
-                    contentDescription = if (isSelected) "Selected" else "Not selected",
+                    contentDescription = stateDesc,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(8.dp)

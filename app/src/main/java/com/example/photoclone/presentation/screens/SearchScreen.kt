@@ -62,6 +62,7 @@ fun SearchScreen(
     photos: List<String>,
     currentRoute: String,
     onNavigate: (String) -> Unit = {},
+    onProfileClick: () -> Unit = {},
     viewModel: PhotoSelectionViewModel = viewModel()
 ) {
     // Search text state
@@ -146,6 +147,11 @@ fun SearchScreen(
                         IconButton(onClick = { searchQuery = "" }) {
                             Icon(Icons.Default.Close, contentDescription = "Clear search")
                         }
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onProfileClick) {
+                        Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.profile))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

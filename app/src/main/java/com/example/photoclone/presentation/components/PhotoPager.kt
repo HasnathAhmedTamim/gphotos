@@ -10,22 +10,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import coil.compose.AsyncImage
+import androidx.compose.ui.res.stringResource
 import com.example.photoclone.R
 
 
 /**
  * Composable for a full-screen photo pager, used when a user taps on a photo to view it in detail.
- * - Displays photos one-by-one in a horizontal pager.
- * - Shows a top app bar with the current photo index and a back button to dismiss the pager.
- * - Each photo is loaded from a URL with proper scaling and placeholders for loading/error states.
- * - The pager state is remembered across recompositions, allowing for smooth navigation between photos.
- * - The onDismiss callback allows the parent composable to control when the pager is shown or hidden.
- * - The modifier parameter allows for further customization of the pager's layout and appearance.
-
- * */
-// Full-screen horizontal pager for viewing photos one-by-one.
-// Shows a top app bar with current index and a back action.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PhotoPager(
@@ -54,7 +45,7 @@ fun PhotoPager(
                         Icon(
                             // ArrowBack icon
                             imageVector = Icons.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.back)
                         )
                     }
                 },
@@ -77,14 +68,13 @@ fun PhotoPager(
             Box(
                 modifier = Modifier.fillMaxSize()
             ) {
-                // AsyncImage loads each URL with a placeholder and error drawable
-                AsyncImage(
-                    model = photoUrls[page],
-                    contentDescription = "Photo ${page + 1}",
+                PhotoImage(
+                    imageUrl = photoUrls[page],
+                    contentDescription = stringResource(R.string.photo_index_description, page + 1, photoUrls.size),
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Fit, // fit entire image inside viewport
-                    placeholder = painterResource(R.drawable.ic_photo_placeholder),
-                    error = painterResource(R.drawable.ic_broken_image)
+                    contentScale = ContentScale.Fit,
+                    requestSizePx = null,
+                    showPlaceholder = true
                 )
             }
         }

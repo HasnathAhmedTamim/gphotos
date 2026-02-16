@@ -45,61 +45,53 @@ class PhotoSelectionViewModel : ViewModel() {
     // Replace the current list of photos (e.g., when screen data updates)
     fun setPhotos(photos: List<Photo>) {
         _photos.value = photos
+        updateSelectionState()
     }
 
     // Toggle selection for a single photo (tap in selection mode)
     fun toggleSelection(photo: Photo) {
-        viewModelScope.launch {
-            val currentPhotos = _photos.value.toMutableList()
-            val index = currentPhotos.indexOfFirst { it.id == photo.id }
-            if (index != -1) {
-                currentPhotos[index] = currentPhotos[index].copy(isSelected = !currentPhotos[index].isSelected)
-                _photos.value = currentPhotos
-                updateSelectionState()
-            }
+        val currentPhotos = _photos.value.toMutableList()
+        val index = currentPhotos.indexOfFirst { it.id == photo.id }
+        if (index != -1) {
+            currentPhotos[index] = currentPhotos[index].copy(isSelected = !currentPhotos[index].isSelected)
+            _photos.value = currentPhotos
+            updateSelectionState()
         }
     }
 
     // Enter selection mode and select the provided photo (used on long-press)
     fun startSelectionMode(photo: Photo) {
-        viewModelScope.launch {
-            _isSelectionMode.value = true
-            val currentPhotos = _photos.value.toMutableList()
-            val index = currentPhotos.indexOfFirst { it.id == photo.id }
-            if (index != -1) {
-                currentPhotos[index] = currentPhotos[index].copy(isSelected = true)
-                _photos.value = currentPhotos
-                updateSelectionState()
-            }
+        _isSelectionMode.value = true
+        val currentPhotos = _photos.value.toMutableList()
+        val index = currentPhotos.indexOfFirst { it.id == photo.id }
+        if (index != -1) {
+            currentPhotos[index] = currentPhotos[index].copy(isSelected = true)
+            _photos.value = currentPhotos
+            updateSelectionState()
         }
     }
 
     // New API: set explicit selection state for a photo (used for drag-to-select)
     fun setSelection(photo: Photo, selected: Boolean) {
-        viewModelScope.launch {
-            val currentPhotos = _photos.value.toMutableList()
-            val index = currentPhotos.indexOfFirst { it.id == photo.id }
-            if (index != -1 && currentPhotos[index].isSelected != selected) {
-                currentPhotos[index] = currentPhotos[index].copy(isSelected = selected)
-                _photos.value = currentPhotos
-                // Ensure selection mode is enabled when selecting
-                if (selected) {
-                    _isSelectionMode.value = true
-                }
-                updateSelectionState()
+        val currentPhotos = _photos.value.toMutableList()
+        val index = currentPhotos.indexOfFirst { it.id == photo.id }
+        if (index != -1 && currentPhotos[index].isSelected != selected) {
+            currentPhotos[index] = currentPhotos[index].copy(isSelected = selected)
+            _photos.value = currentPhotos
+            if (selected) {
+                _isSelectionMode.value = true
             }
+            updateSelectionState()
         }
     }
 
     // Clear all selection and exit selection mode
     fun clearSelection() {
-        viewModelScope.launch {
-            val currentPhotos = _photos.value.map { it.copy(isSelected = false) }
-            _photos.value = currentPhotos
-            _isSelectionMode.value = false
-            _selectedPhotos.value = emptyList()
-            _selectedCount.value = 0
-        }
+        val currentPhotos = _photos.value.map { it.copy(isSelected = false) }
+        _photos.value = currentPhotos
+        _isSelectionMode.value = false
+        _selectedPhotos.value = emptyList()
+        _selectedCount.value = 0
     }
 
     // Internal helper to sync selectedPhotos, selectedCount, and selection mode

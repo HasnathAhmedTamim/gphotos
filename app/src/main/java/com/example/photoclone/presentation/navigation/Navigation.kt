@@ -13,30 +13,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.res.stringResource
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.photoclone.R
 import com.example.photoclone.presentation.components.CreateBottomSheetContent
 import com.example.photoclone.presentation.model.BottomSheetItem
 import com.example.photoclone.presentation.screens.CollectionScreen
 import com.example.photoclone.presentation.screens.CreateScreen
 import com.example.photoclone.presentation.screens.HomeScreen
 import com.example.photoclone.presentation.screens.SearchScreen
+import com.example.photoclone.presentation.screens.ProfileScreen
 
 /**
  *  Main navigation composable that sets up the NavHost and defines all the routes/screens.
- *  - Uses a single NavController for the entire app.
- *  - Manages the state of the bottom sheet at this level to ensure it can be triggered from any screen without issues.
- *  - Implements fade in/out transitions for screen navigation.
- *  - Handles navigation errors gracefully by logging them.
- *  - Uses string resources for bottom sheet item titles to support localization and prevent hardcoded strings.
- *  - Ensures that the bottom sheet state is not recreated on every recomposition, which can cause issues with the sheet's behavior.
- *  - The bottom sheet content is defined in a separate composable for better organization and reusability.
- *  - Each screen can trigger the bottom sheet by calling the onAddClick callback, which is passed down from this navigation composable.
- *
- * */
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PhotoCloneNavigation() {
@@ -68,6 +58,10 @@ fun PhotoCloneNavigation() {
                 photos = demoPhotos,
                 currentRoute = Screen.Home.route,
                 onAddClick = { showBottomSheet = true },
+                onNotificationClick = {
+                    // TODO: Handle notification click
+                },
+                onProfileClick = { navController.navigate(Screen.Profile.route) },
                 onNavigate = { route ->
                     // Safe navigation with try/catch
                     try {
@@ -94,9 +88,7 @@ fun PhotoCloneNavigation() {
                 onNotificationClick = {
                     // TODO: Handle notification click
                 },
-                onProfileClick = {
-                    // TODO: Handle profile click
-                },
+                onProfileClick = { navController.navigate(Screen.Profile.route) },
                 onNavigate = { route ->
                     try {
                         navController.navigate(route) {
@@ -122,9 +114,7 @@ fun PhotoCloneNavigation() {
                 onNotificationClick = {
                     // TODO: Handle notification click
                 },
-                onProfileClick = {
-                    // TODO: Handle profile click
-                },
+                onProfileClick = { navController.navigate(Screen.Profile.route) },
                 onNavigate = { route ->
                     try {
                         navController.navigate(route) {
@@ -159,23 +149,19 @@ fun PhotoCloneNavigation() {
                     } catch (e: Exception) {
                         Log.e("Navigation", "Failed to navigate to $route", e)
                     }
-                }
+                },
+                onProfileClick = { navController.navigate(Screen.Profile.route) }
             )
+        }
+
+        // Profile screen route
+        composable(route = Screen.Profile.route) {
+            ProfileScreen(onBack = { navController.popBackStack() })
         }
     }
 
     // Create bottom sheet when requested from any screen
     if (showBottomSheet) {
-        // Load localized strings once per composition
-        val albumStr = stringResource(R.string.album)
-        val collageStr = stringResource(R.string.collage)
-        val highlightVideoStr = stringResource(R.string.highlight_video)
-        val cinematicPhotoStr = stringResource(R.string.cinematic_photo)
-        val animationStr = stringResource(R.string.animation)
-        val remixStr = stringResource(R.string.remix)
-        val sharePartnerStr = stringResource(R.string.share_with_partner)
-        val importStr = stringResource(R.string.import_from_other_places)
-
         ModalBottomSheet(
             onDismissRequest = { showBottomSheet = false },
             sheetState = bottomSheetState,
@@ -184,31 +170,34 @@ fun PhotoCloneNavigation() {
             CreateBottomSheetContent(
                 onDismiss = { showBottomSheet = false },
                 onItemClick = { item: BottomSheetItem ->
-                    // Handle bottom sheet item clicks using localized titles
-                    when (item.title) {
-                        albumStr -> {
+                    // Handle bottom sheet item clicks using stable ids
+                    when (item.id) {
+                        1 -> {
                             // TODO: Create album
                         }
-                        collageStr -> {
+                        2 -> {
                             // TODO: Create collage
                         }
-                        highlightVideoStr -> {
+                        3 -> {
                             // TODO: Create highlight video
                         }
-                        cinematicPhotoStr -> {
+                        4 -> {
                             // TODO: Create cinematic photo
                         }
-                        animationStr -> {
+                        5 -> {
                             // TODO: Create animation
                         }
-                        remixStr -> {
+                        6 -> {
                             // TODO: Create remix
                         }
-                        sharePartnerStr -> {
+                        7 -> {
                             // TODO: Share with partner
                         }
-                        importStr -> {
+                        8 -> {
                             // TODO: Import from other places
+                        }
+                        else -> {
+                            // Unknown action
                         }
                     }
                     showBottomSheet = false
@@ -223,4 +212,5 @@ sealed class Screen(val route: String) {
     object Collection : Screen("collection")
     object Create : Screen("create")
     object Search : Screen("search")
+    object Profile : Screen("profile")
 }

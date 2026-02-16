@@ -19,11 +19,12 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
 import com.example.photoclone.R
 import com.example.photoclone.presentation.components.BottomNavItem
 import com.example.photoclone.presentation.components.PhotoBottomNavigation
 import com.example.photoclone.presentation.components.PhotoTopAppBar
+import com.example.photoclone.presentation.components.PhotoImage
+
 /**
  *  Collection screen showing albums and quick access tiles.
  *  The screen is structured with a top app bar, a grid of collection items, and a bottom navigation bar.
@@ -184,11 +185,13 @@ fun CollectionItem(collection: Collection) {
                         .clip(RoundedCornerShape(16.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                 ) {
-                    AsyncImage(
-                        model = collection.thumbnailUrl,
+                    PhotoImage(
+                        imageUrl = collection.thumbnailUrl,
                         contentDescription = collection.name,
+                        modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
+                        requestSizePx = null,
+                        showPlaceholder = true
                     )
                 }
 

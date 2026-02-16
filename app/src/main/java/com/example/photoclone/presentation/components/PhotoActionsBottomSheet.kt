@@ -7,11 +7,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
 /**
@@ -87,59 +84,21 @@ fun PhotoActionsBottomSheet(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 actions.forEach { action ->
-                    PhotoActionButton(
+                    IconLabelButton(
                         icon = action.icon,
                         label = action.label,
                         onClick = {
                             action.onClick()
                             onDismiss()
-                        }
+                        },
+                        size = 56.dp,
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
         }
-    }
-}
-
-@Composable
-private fun PhotoActionButton(
-    icon: ImageVector,
-    label: String,
-    onClick: () -> Unit
-) {
-    // Single circular icon button with a small label underneath.
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .width(56.dp) // match the size of the FilledTonalIconButton so label width equals icon width
-            .padding(vertical = 8.dp)
-    ) {
-        FilledTonalIconButton(
-            onClick = onClick,
-            modifier = Modifier.size(56.dp),
-            colors = IconButtonDefaults.filledTonalIconButtonColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = label,
-                modifier = Modifier.size(24.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Center,
-            maxLines = 2,
-            modifier = Modifier.fillMaxWidth()
-        )
     }
 }

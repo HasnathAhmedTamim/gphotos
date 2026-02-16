@@ -115,111 +115,76 @@ fun SelectionBottomSheet(
                 val btnContainer = MaterialTheme.colorScheme.surfaceVariant
                 val btnIconTint = MaterialTheme.colorScheme.onSurface // stronger contrast
 
-                // Each action uses the AccessibleAction helper below
-                AccessibleAction(
+                // Each action uses the IconLabelButton directly
+                IconLabelButton(
                     icon = Icons.Outlined.Share,
                     label = "Share",
                     onClick = onShare,
+                    size = 72.dp,
                     containerColor = btnContainer,
                     contentColor = btnIconTint
                 )
 
-                AccessibleAction(
+                IconLabelButton(
                     icon = Icons.Outlined.Add,
                     label = "Add",
                     onClick = onAddToAlbum,
+                    size = 72.dp,
                     containerColor = btnContainer,
                     contentColor = btnIconTint
                 )
 
-                AccessibleAction(
+                IconLabelButton(
                     icon = Icons.Outlined.Create,
                     label = "Create",
                     onClick = onCreate,
+                    size = 72.dp,
                     containerColor = btnContainer,
                     contentColor = btnIconTint
                 )
 
-                AccessibleAction(
+                IconLabelButton(
                     icon = Icons.Outlined.Delete,
                     label = "Delete",
                     onClick = onDelete,
+                    size = 72.dp,
                     containerColor = btnContainer,
                     contentColor = btnIconTint
                 )
 
-                AccessibleAction(
+                IconLabelButton(
                     icon = Icons.Outlined.CloudUpload,
                     label = "Backup",
                     onClick = onBackup,
+                    size = 72.dp,
                     containerColor = btnContainer,
                     contentColor = btnIconTint
                 )
 
-                AccessibleAction(
+                IconLabelButton(
                     icon = Icons.Outlined.Archive,
                     label = "Archive",
                     onClick = onArchive,
+                    size = 72.dp,
                     containerColor = btnContainer,
                     contentColor = btnIconTint
                 )
 
-                AccessibleAction(
+                IconLabelButton(
                     icon = Icons.Outlined.Lock,
                     label = "Lock",
                     onClick = onMoveToLocked,
+                    size = 72.dp,
                     containerColor = btnContainer,
                     contentColor = btnIconTint
                 )
 
                 Spacer(modifier = Modifier.width(8.dp))
+
             }
 
             // Flexible spacer so sheet content aligns nicely when expanded
             Spacer(modifier = Modifier.weight(1f))
         }
-    }
-}
-
-// Circular action button with label underneath; sized for accessibility and consistent layout.
-@Composable
-private fun AccessibleAction(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    onClick: () -> Unit,
-    containerColor: androidx.compose.ui.graphics.Color,
-    contentColor: androidx.compose.ui.graphics.Color
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.width(72.dp) // ensure label width matches button
-    ) {
-        Surface(
-            onClick = onClick,
-            modifier = Modifier.size(72.dp),
-            shape = CircleShape,
-            color = containerColor,
-            shadowElevation = 8.dp
-        ) {
-            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = label,
-                    tint = contentColor,
-                    modifier = Modifier.size(32.dp)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 2,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
-        )
     }
 }

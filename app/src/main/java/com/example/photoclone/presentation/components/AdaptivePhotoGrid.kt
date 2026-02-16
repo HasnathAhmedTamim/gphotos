@@ -57,7 +57,7 @@ fun AdaptivePhotoGrid(
         // Emit each photo item and optionally let some span multiple columns
         photos.forEachIndexed { index, photo ->
             val span = if (bigItemPredicate(index, photo)) computedColumns else 1
-            item(span = { GridItemSpan(span) }) {
+            item(key = photo.id, span = { GridItemSpan(span) }) {
                 // Request a larger image for multi-column items
                 val requestSize = if (span == 1) itemPx else itemPx * computedColumns
                 // Pass a per-item modifier so callers can add animations

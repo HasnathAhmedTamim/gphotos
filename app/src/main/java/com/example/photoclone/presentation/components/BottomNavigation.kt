@@ -10,17 +10,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 
+// Simple model for a bottom navigation entry.
 data class BottomNavItem(
     val title: String,
-    val icon: ImageVector,  // Changed from resource ID to ImageVector
-    val route: String
+    val icon: ImageVector,  // use vector icons for easy tinting
+    val route: String // navigation route identifier
 )
 
+// Bottom navigation bar showing a list of items and the selected index.
 @Composable
 fun PhotoBottomNavigation(
-    items: List<BottomNavItem>,
-    selectedIndex: Int,
-    onItemSelected: (Int) -> Unit,
+    items: List<BottomNavItem>, // visible navigation items
+    selectedIndex: Int, // index of the currently selected item
+    onItemSelected: (Int) -> Unit, // callback when an item is tapped
     modifier: Modifier = Modifier
 ) {
     NavigationBar(

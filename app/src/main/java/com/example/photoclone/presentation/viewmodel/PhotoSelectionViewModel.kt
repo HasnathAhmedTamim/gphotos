@@ -67,11 +67,11 @@ class PhotoSelectionViewModel : ViewModel() {
         // Also update _selectedPhotos for non-paged mode to keep UI consistent
         val photos = _photos.value
         if (photos.isNotEmpty()) {
-            val updated = photos.map { photo ->
-                photo.copy(isSelected = _selectedUris.value.contains(photo.imageUrl))
-            }
-            _photos.value = updated
-            _selectedPhotos.value = updated.filter { it.isSelected }
+            // Do NOT mutate the _photos list here. Instead, compute the selected subset from
+            // the current photos and the selectedUris set. This avoids wholesale list replacements
+            // that can cause Lazy grids to rebind and jump.
+            val selectedSet = _selectedUris.value
+            _selectedPhotos.value = photos.filter { selectedSet.contains(it.imageUrl) }
         } else {
             _selectedPhotos.value = emptyList()
         }
@@ -135,6 +135,31 @@ class PhotoSelectionViewModel : ViewModel() {
             _selectedUris.value = current
             syncSelectionFromUris()
         }
+    }
+
+    /**
+     * Add multiple URIs to the current selection in one atomic update. This reduces the number
+     * of StateFlow emissions and recompositions when selecting items in batches (e.g., drag-to-select).
+     */
+    fun addSelections(uris: Set<String>) {
+        if (uris.isEmpty()) return
+        val current = _selectedUris.value.toMutableSet()
+        val changed = current.addAll(uris)
+        if (changed) {
+            _selectedUris.value = current
+            syncSelectionFromUris()
+        }
+    }
+
+    /**
+     * Replace the current selection set with the provided set in one atomic update.
+     * Use this when the UI maintains a local buffered selection and wants to push the full set
+     * to the ViewModel to avoid multiple incremental updates.
+     */
+    fun setSelections(uris: Set<String>) {
+        if (_selectedUris.value == uris) return
+        _selectedUris.value = uris.toSet()
+        syncSelectionFromUris()
     }
 
     // Backwards-compatible API: set selection by Photo instance
@@ -201,16 +226,8 @@ class PhotoSelectionViewModel : ViewModel() {
 
     // New: provide a paging flow of Photos for large galleries
     fun pagerPhotos(context: Context, pageSize: Int = 50): Flow<PagingData<Photo>> {
+        // GalleryRepository.pagerForImages already returns Flow<PagingData<Photo>> so just cache it here
         return GalleryRepository.pagerForImages(context, pageSize)
-            .map { pagingData: PagingData<Uri> ->
-                pagingData.map { uri: Uri ->
-                    Photo(
-                        id = uri.hashCode().toLong(),
-                        imageUrl = uri.toString(),
-                        thumbnailUrl = uri.toString()
-                    )
-                }
-            }
             .cachedIn(viewModelScope)
     }
 

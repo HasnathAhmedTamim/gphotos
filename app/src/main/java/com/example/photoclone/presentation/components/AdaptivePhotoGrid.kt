@@ -61,7 +61,7 @@ fun AdaptivePhotoGrid(
                 // Request a larger image for multi-column items
                 val requestSize = if (span == 1) itemPx else itemPx * computedColumns
                 // Pass a per-item modifier so callers can add animations
-                itemContent(index, photo, requestSize, Modifier.animateItem())
+                itemContent(index, photo, requestSize, Modifier)
             }
         }
     }

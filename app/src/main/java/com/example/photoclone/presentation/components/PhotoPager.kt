@@ -5,14 +5,14 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.rememberTransformableState
-import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.Edit
@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.graphicsLayer
@@ -39,7 +40,7 @@ import com.example.photoclone.R
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PhotoPager(
-    photoUrls: List<String>, // list of remote/local image URLs
+    photoUrls: List<String?>, // list of remote/local image URLs (nullable entries allowed for unloaded paged items)
     initialPage: Int, // starting page index
     onDismiss: () -> Unit, // called when back is pressed
     modifier: Modifier = Modifier
@@ -50,11 +51,13 @@ fun PhotoPager(
         pageCount = { photoUrls.size }
     )
 
-    // Track whether the currently-visible page is zoomed (scale > 1f)
-    var pageScale by rememberSaveable { mutableStateOf(1f) }
+    // Map to keep per-page transform state so zoom/offset are preserved while swiping
+    val perPageState = remember { mutableStateMapOf<Int, TransformState>() }
 
     // Chrome visibility toggled by single tap on the image; saved across recompositions
     var chromeVisible by rememberSaveable { mutableStateOf(true) }
+
+    val context = LocalContext.current
 
     Box(modifier = modifier.fillMaxSize()) {
         // Intercept system back to dismiss the pager instead of closing the app
@@ -62,74 +65,109 @@ fun PhotoPager(
             onDismiss()
         }
 
-        // HorizontalPager: disable user scroll when zoomed on the active page
+        // Prefetch neighbors when current page changes
+        LaunchedEffect(pagerState.currentPage) {
+            val current = pagerState.currentPage
+            listOf(current - 1, current + 1).forEach { idx ->
+                photoUrls.getOrNull(idx)?.let { url ->
+                    prefetchImage(context, url)
+                }
+            }
+        }
+
+        // HorizontalPager: disable user scrolling when the active page is zoomed (>1f).
+        // Compute whether the pager should allow scrolling based on the active page's scale.
+        val currentPageScale by remember {
+            derivedStateOf { perPageState[pagerState.currentPage]?.scale ?: 1f }
+        }
+
         HorizontalPager(
             state = pagerState,
-            userScrollEnabled = pageScale <= 1.01f,
+            userScrollEnabled = currentPageScale <= 1f,
             modifier = Modifier.fillMaxSize()
         ) { page ->
-            // Per-page transformable state: scale and translation
-            var localScale by remember { mutableStateOf(1f) }
-            var targetScale by remember { mutableStateOf(1f) }
-            val animatedScale by animateFloatAsState(targetValue = targetScale)
+            // Ensure a TransformState exists for this page
+            val state = perPageState.getOrPut(page) { TransformState(scale = 1f, offset = Offset.Zero) }
+            val animatedScale by animateFloatAsState(targetValue = state.scale)
 
-            var offset by remember { mutableStateOf(Offset.Zero) }
+            // If this page is active, and scaled > 1, we want to disable pager swipe
+            val isActive = page == pagerState.currentPage
 
-            val transformState = rememberTransformableState { zoomChange, pan, _ ->
-                // Update local scale within reasonable bounds and update translation
-                val newScale = (localScale * zoomChange).coerceIn(1f, 4f)
-                // Adjust offset by pan (pan is in pixels)
-                offset += pan
-                localScale = newScale
-                targetScale = newScale
-            }
-
-            // If this page is active, propagate the scale to the parent-tracked pageScale
-            LaunchedEffect(animatedScale, pagerState.currentPage) {
-                if (page == pagerState.currentPage) {
-                    pageScale = animatedScale
-                }
-            }
-
-            // Reset translation when returning to 1x
-            LaunchedEffect(targetScale) {
-                if (targetScale <= 1f) {
-                    offset = Offset.Zero
-                }
-            }
-
-            // Image receives transform gestures then tap gestures to toggle chrome; double-tap toggles zoom
-            if (photoUrls.isNotEmpty()) {
-                val url = photoUrls[page]
-                PhotoImage(
-                    imageUrl = url,
-                    contentDescription = stringResource(R.string.photo_index_description, page + 1, photoUrls.size),
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .transformable(state = transformState)
-                        .pointerInput(Unit) {
-                            detectTapGestures(
-                                onTap = { chromeVisible = !chromeVisible },
-                                onDoubleTap = {
-                                    // Double-tap toggles between 1x and 2x and recenters translation
-                                    val new = if (animatedScale > 1.5f) 1f else 2f
-                                    targetScale = new
-                                    localScale = new
-                                    // Reset offset on zoom change for predictability
-                                    offset = Offset.Zero
-                                }
-                            )
+            // Pointer handlers for taps/double-tap, multi-touch transforms (pinch) and panning when zoomed.
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    // taps and double taps implemented with awaitFirstDown(requireUnconsumed=false)
+                    // so we don't consume the initial down event and allow the pager to detect
+                    // horizontal swipes. We still detect double-tap to toggle zoom.
+                    .pointerInput(page) {
+                        // Use detectTapGestures which cooperates with parent scrolling gestures
+                        // so horizontal swipes for the pager are not intercepted.
+                        val containerSize = this.size
+                        detectTapGestures(
+                            onTap = { chromeVisible = !chromeVisible },
+                            onDoubleTap = { tapPos: Offset ->
+                                // toggle between 1x and 2x zoom centered at the tap position
+                                val target = if (state.scale > 1.5f) 1f else 2f
+                                val containerCenter = Offset(containerSize.width / 2f, containerSize.height / 2f)
+                                val focusToCenter = tapPos - containerCenter
+                                val scaleRatio = target / state.scale
+                                val newOffset = (state.offset + focusToCenter) * scaleRatio - focusToCenter
+                                state.scale = target
+                                state.offset = newOffset.clampOffset()
+                            }
+                        )
+                    }
+                    // multi-touch pinch/rotate -> detectTransformGestures (doesn't run for single-finger swipes)
+                    .pointerInput(page) {
+                        detectTransformGestures { _, pan, zoom, _ ->
+                            val prevScale = state.scale
+                            val newScale = (prevScale * zoom).coerceIn(1f, 4f)
+                            state.scale = newScale
+                            if (newScale > 1f) {
+                                state.offset += pan
+                                state.offset = state.offset.clampOffset()
+                            } else if (prevScale > 1f && newScale <= 1f) {
+                                state.offset = Offset.Zero
+                            }
                         }
-                        .graphicsLayer {
-                            scaleX = animatedScale
-                            scaleY = animatedScale
-                            translationX = offset.x
-                            translationY = offset.y
-                        },
-                    contentScale = ContentScale.Fit,
-                    requestSizePx = null,
-                    showPlaceholder = true
-                )
+                    }
+                    // single-finger drag for panning when zoomed: attach this pointer handler
+                    // only when the page is zoomed (>1f) so it doesn't intercept horizontal
+                    // swipes when at normal scale.
+                    .then(if (state.scale > 1f) Modifier.pointerInput(page) {
+                        detectDragGestures { change, dragAmount ->
+                            state.offset += Offset(dragAmount.x, dragAmount.y)
+                            state.offset = state.offset.clampOffset()
+                            change.consume()
+                        }
+                    } else Modifier)
+                     .graphicsLayer {
+                         scaleX = animatedScale
+                         scaleY = animatedScale
+                         translationX = state.offset.x
+                         translationY = state.offset.y
+                     }
+                 ) {
+                if (photoUrls.isNotEmpty()) {
+                    val url = photoUrls[page]
+                    PhotoImage(
+                        imageUrl = url,
+                        contentDescription = stringResource(R.string.photo_index_description, page + 1, photoUrls.size),
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit,
+                        requestSizePx = null,
+                        showPlaceholder = true
+                    )
+                }
+            }
+
+            // When this page becomes inactive and scale returns to 1, reset offset to zero
+            LaunchedEffect(isActive, state.scale) {
+                if (!isActive && state.scale <= 1f) {
+                    // small delay to allow animation to settle
+                    state.offset = Offset.Zero
+                }
             }
         }
 
@@ -145,7 +183,7 @@ fun PhotoPager(
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.TopStart) {
                 IconButton(onClick = onDismiss, modifier = Modifier.padding(4.dp)) {
                     Icon(
-                        imageVector = Icons.Default.ArrowBack,
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = stringResource(R.string.back),
                         tint = MaterialTheme.colorScheme.onSurface
                     )
@@ -189,4 +227,12 @@ fun PhotoPager(
             }
         }
     }
+}
+
+// Simple holder for transform state per page
+private data class TransformState(var scale: Float, var offset: Offset)
+
+// Clamp offset to some reasonable bounds. For precise bounds we'd measure image vs container; this uses a conservative clamp.
+private fun Offset.clampOffset(maxPx: Float = 2000f): Offset {
+    return Offset(x.coerceIn(-maxPx, maxPx), y.coerceIn(-maxPx, maxPx))
 }

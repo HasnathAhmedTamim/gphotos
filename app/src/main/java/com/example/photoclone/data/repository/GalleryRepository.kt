@@ -7,14 +7,16 @@ import android.provider.MediaStore
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
-import androidx.paging.map
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import com.example.photoclone.data.model.Photo
 
 /**
  * Small repository to load image Uris from the device gallery using MediaStore.
  */
 object GalleryRepository {
-    suspend fun loadGalleryImageUris(context: Context, limit: Int = 200): List<Uri> {
+    suspend fun loadGalleryImageUris(context: Context, limit: Int = 200): List<Uri> = withContext(Dispatchers.IO) {
         val uris = mutableListOf<Uri>()
         val collection = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
         val projection = arrayOf(
@@ -35,11 +37,12 @@ object GalleryRepository {
                 count++
             }
         }
-        return uris
+        uris
     }
 
-    fun pagerForImages(context: Context, pageSize: Int = 50): Flow<PagingData<Uri>> {
-        return Pager(PagingConfig(pageSize = pageSize, prefetchDistance = 1, enablePlaceholders = false)) {
+    // Return a flow of PagingData<Photo> so callers get size info for better layout decisions
+    fun pagerForImages(context: Context, pageSize: Int = 50): Flow<PagingData<Photo>> {
+        return Pager(PagingConfig(pageSize = pageSize, prefetchDistance = 2, enablePlaceholders = false)) {
             MediaStorePagingSource(context, pageSize)
         }.flow
     }

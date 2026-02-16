@@ -1,12 +1,15 @@
 package com.example.photoclone.presentation.components
 
+import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import coil.ImageLoader
 import coil.compose.AsyncImage
+import coil.request.Disposable
 import coil.request.ImageRequest
 import coil.size.Size
 import com.example.photoclone.R
@@ -46,4 +49,18 @@ fun PhotoImage(
         placeholder = if (showPlaceholder) painterResource(R.drawable.ic_photo_placeholder) else null,
         error = painterResource(R.drawable.ic_broken_image)
     )
+}
+
+/**
+ * Prefetch an image into Coil's memory/disk cache. Call from a coroutine or a LaunchedEffect.
+ */
+fun prefetchImage(context: Context, url: String?) : Disposable? {
+    if (url.isNullOrBlank()) return null
+    val loader = ImageLoader(context)
+    val request = ImageRequest.Builder(context)
+        .data(url)
+        .size(Size.ORIGINAL)
+        .allowHardware(false)
+        .build()
+    return loader.enqueue(request)
 }

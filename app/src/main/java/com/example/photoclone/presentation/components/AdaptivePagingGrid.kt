@@ -3,6 +3,7 @@ package com.example.photoclone.presentation.components
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
@@ -23,6 +24,8 @@ fun AdaptivePagingGrid(
     gutter: Dp = 2.dp,
     columns: Int? = null,
     state: LazyGridState? = null,
+    // Allow callers to mark some items as "big" so they span multiple columns like Google Photos
+    bigItemPredicate: (index: Int, photo: Photo?) -> Boolean = { _, _ -> false },
     itemContent: @Composable (index: Int, photo: Photo?, imageRequestSizePx: Int?, itemModifier: Modifier) -> Unit
 ) {
     val windowInfo = LocalWindowInfo.current
@@ -44,9 +47,17 @@ fun AdaptivePagingGrid(
         verticalArrangement = Arrangement.spacedBy(gutter)
     ) {
         val count = items.itemCount
-        items(count) { index ->
+        // Emit each item with explicit key and optional span so LazyVerticalGrid can preserve identity and create "big" tiles
+        for (index in 0 until count) {
             val photo = items[index]
-            itemContent(index, photo, itemPx, Modifier)
+            val span = if (bigItemPredicate(index, photo)) computedColumns else 1
+            // Use the stable index as the key for paging items. Using photo.id when the
+            // item is initially null (placeholder) and later becomes non-null would change the key
+            // and cause list instability and jumpy scroll behavior. Index is stable across load states.
+            item(key = index, span = { GridItemSpan(span) }) {
+                val requestSize = if (span == 1) itemPx else itemPx * computedColumns
+                itemContent(index, photo, requestSize, Modifier)
+            }
         }
     }
 }

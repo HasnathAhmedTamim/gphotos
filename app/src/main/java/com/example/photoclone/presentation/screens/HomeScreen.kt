@@ -12,7 +12,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.contract.ActivityResultContracts.OpenMultipleDocuments
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
@@ -27,7 +26,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -41,6 +39,9 @@ import com.example.photoclone.presentation.components.*
 import com.example.photoclone.presentation.viewmodel.PhotoSelectionViewModel
 import androidx.paging.compose.collectAsLazyPagingItems
 import kotlin.runCatching
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -55,6 +56,13 @@ fun HomeScreen(
     viewModel: PhotoSelectionViewModel = viewModel()
 ) {
     val context = LocalContext.current
+
+    // Coroutine scope & local buffered selection state to batch updates during drag-to-select
+    val coroutineScope = rememberCoroutineScope()
+    var selectionFlushJob by remember { mutableStateOf<Job?>(null) }
+    // Local buffer used for immediate UI responsiveness while we batch updates to the ViewModel
+    // Use a SnapshotStateMap so updating a single entry only recomposes items that read that key.
+    val localSelectedUris = remember { mutableStateMapOf<String, Boolean>() }
 
     // Permission logic: choose the correct runtime permission for the SDK
     val readPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -127,6 +135,58 @@ fun HomeScreen(
     val isSelectionMode by viewModel.isSelectionMode.collectAsState()
     val selectedUris by viewModel.selectedUris.collectAsState()
 
+    // Keep local buffer in sync with ViewModel selection changes. When ViewModel updates (e.g., selection cleared elsewhere), reflect it immediately.
+    LaunchedEffect(selectedUris) {
+        // Sync the local map with the ViewModel's authoritative selection set.
+        localSelectedUris.clear()
+        selectedUris.forEach { uri -> localSelectedUris[uri] = true }
+    }
+
+    // Lazy grid state used for mapping pointer positions to visible items (drag-to-select)
+    val gridState = rememberLazyGridState()
+
+    // Apply selections while preserving the lazy grid's current scroll position.
+    fun applySelectionsPreservingScroll(selections: Set<String>) {
+        // If nothing changed, skip
+        if (viewModel.selectedUris.value == selections) return
+
+        // Capture current scroll position
+        val firstIndex = gridState.firstVisibleItemIndex
+        val firstOffset = gridState.firstVisibleItemScrollOffset
+
+        // Apply selections and attempt to restore scroll position shortly after to avoid jumps
+        coroutineScope.launch {
+            try {
+                viewModel.setSelections(selections)
+            } catch (_: Exception) {
+                // ignore
+            }
+
+            // Retry restoring scroll position a few times to let layout settle (best-effort)
+             val attempts = 6
+             var restored = false
+            repeat(attempts) {
+                 try {
+                     gridState.scrollToItem(firstIndex, firstOffset)
+                     restored = true
+                     return@repeat
+                 } catch (_: Exception) {
+                     // wait and try again
+                 }
+                 delay(50L)
+             }
+
+             // Final best-effort attempt without catching to surface unexpected issues in debug
+             if (!restored) {
+                 try {
+                     gridState.scrollToItem(firstIndex, firstOffset)
+                 } catch (_: Exception) {
+                     // ignore
+                 }
+             }
+         }
+     }
+
     // Derived state: show selection bottom sheet only when in selection mode and items selected
     val showBottomSheet by remember(selectedCount, isSelectionMode) {
         derivedStateOf { isSelectionMode && selectedCount > 0 }
@@ -138,9 +198,6 @@ fun HomeScreen(
 
     // Columns count adjustable via pinch gestures
     var columns by remember { mutableStateOf(3) }
-
-    // Lazy grid state used for mapping pointer positions to visible items (drag-to-select)
-    val gridState = rememberLazyGridState()
 
     // Bottom navigation items for the app
     val navigationItems = listOf(
@@ -169,7 +226,7 @@ fun HomeScreen(
     val selectedIndex = navigationItems.indexOfFirst { it.route == currentRoute }.takeIf { it >= 0 } ?: 0
 
     // Pager window for paging mode: nearby loaded URIs to feed PhotoPager
-    var pagerWindow by remember { mutableStateOf<List<String>>(emptyList()) }
+    var pagerWindow by remember { mutableStateOf<List<String?>>(emptyList()) }
 
     Scaffold(
         topBar = {
@@ -291,86 +348,64 @@ fun HomeScreen(
                                         columns = (columns + 1).coerceAtMost(6)
                                     }
                                 }
-                            }
-                            .then(if (isSelectionMode) Modifier.pointerInput(Unit) {
-                                detectDragGestures(
-                                    onDragStart = { offset: Offset ->
-                                        // On drag start, try to select the visible item under the pointer for paging
-                                        val info = gridState.layoutInfo
-                                        val item = info.visibleItemsInfo.firstOrNull { vi ->
-                                            val left = vi.offset.x.toFloat()
-                                            val top = vi.offset.y.toFloat()
-                                            val right = (vi.offset.x + vi.size.width).toFloat()
-                                            val bottom = (vi.offset.y + vi.size.height).toFloat()
-                                            offset.x >= left && offset.x <= right && offset.y >= top && offset.y <= bottom
-                                        }
-                                        item?.let { vi ->
-                                            val p = pagingItems[vi.index]
-                                            p?.let { photo ->
-                                                viewModel.setSelectionByUri(photo.imageUrl, true)
-                                            }
-                                        }
-                                    },
-                                    onDrag = { change, _ ->
-                                        val pos = change.position
-                                        val info = gridState.layoutInfo
-                                        val item = info.visibleItemsInfo.firstOrNull { vi ->
-                                            val left = vi.offset.x.toFloat()
-                                            val top = vi.offset.y.toFloat()
-                                            val right = (vi.offset.x + vi.size.width).toFloat()
-                                            val bottom = (vi.offset.y + vi.size.height).toFloat()
-                                            pos.x >= left && pos.x <= right && pos.y >= top && pos.y <= bottom
-                                        }
-                                        item?.let { vi ->
-                                            val p = pagingItems[vi.index]
-                                            p?.let { photo ->
-                                                viewModel.setSelectionByUri(photo.imageUrl, true)
-                                            }
-                                        }
-                                        change.consume()
-                                    }
-                                )
-                            } else Modifier),
+                            },
                          contentPadding = PaddingValues(4.dp),
                          gutter = 4.dp,
                          columns = columns,
-                         state = gridState
+                         state = gridState,
+                         // Make every 7th item a larger tile (mimics Google Photos masonry feel)
+                         bigItemPredicate = { index, _ -> index % 7 == 0 }
                      ) { index, photo, imageRequestSizePx, itemModifier ->
                          photo?.let { p ->
                             SelectablePhotoGridItem(
                                 imageUrl = p.imageUrl,
-                                isSelected = selectedUris.contains(p.imageUrl),
+                                isSelected = localSelectedUris.containsKey(p.imageUrl),
                                 isSelectionMode = isSelectionMode,
                                 onClick = {
                                      if (isSelectionMode) {
-                                         // toggle selection by URI so paging items work
-                                         viewModel.toggleSelectionByUri(p.imageUrl)
-                                     } else {
-                                         // Build a small pager window around the tapped index so the viewer can swipe locally
-                                         val windowRadius = 10
-                                         val start = (index - windowRadius).coerceAtLeast(0)
-                                         val end = (index + windowRadius)
-                                         val window = mutableListOf<String>()
-                                         var initialPosInWindow = 0
-                                         for (i in start..end) {
-                                             val item = pagingItems[i]
-                                             if (item != null) {
-                                                 if (i == index) initialPosInWindow = window.size
-                                                 window += item.imageUrl
-                                             }
+                                         // toggle selection locally for instant feedback using the map
+                                         val uri = p.imageUrl
+                                         if (localSelectedUris.containsKey(uri)) localSelectedUris.remove(uri) else localSelectedUris[uri] = true
+                                         // schedule a debounced flush to apply the full buffer
+                                         selectionFlushJob?.cancel()
+                                         selectionFlushJob = coroutineScope.launch {
+                                             delay(30)
+                                             // push the authoritative buffer to the ViewModel in one update while preserving scroll
+                                             applySelectionsPreservingScroll(localSelectedUris.keys.toSet())
                                          }
-                                         pagerWindow = window
-                                         selectedPhotoIndex = initialPosInWindow
-                                         showPager = true
-                                     }
-                                 },
-                                 onLongPress = { if (!isSelectionMode) viewModel.setSelectionByUri(p.imageUrl, true) },
-                                 modifier = itemModifier,
-                                 imageRequestSizePx = imageRequestSizePx
-                             )
-                         }
-                     }
-                 } else {
+                                     } else {
+                                          // Build a small pager window around the tapped index so the viewer can swipe locally
+                                          val windowRadius = 10
+                                          // Create a full-size list equal to total items with null placeholders so the pager
+                                          // can present the full swipe range even if most pages aren't loaded yet.
+                                          val totalItems = pagingItems.itemCount.coerceAtLeast(0)
+                                          val fullWindow = MutableList<String?>(totalItems) { null }
+
+                                          // Populate a small neighborhood around the tapped index to show immediately
+                                          val start = (index - windowRadius).coerceAtLeast(0)
+                                          val end = (index + windowRadius).coerceAtMost(totalItems - 1)
+                                          for (i in start..end) {
+                                              val item = if (i in 0 until pagingItems.itemCount) pagingItems[i] else null
+                                              if (item != null) fullWindow[i] = item.imageUrl
+                                          }
+
+                                          pagerWindow = fullWindow
+                                          // Use absolute index into the full window so the user can swipe across the whole gallery
+                                          selectedPhotoIndex = index.coerceIn(0, pagerWindow.size - 1)
+                                           showPager = true
+                                      }
+                                  },
+                                 onLongPress = { if (!isSelectionMode) {
+                                     // enter selection and set the buffer atomically
+                                     localSelectedUris[p.imageUrl] = true
+                                     applySelectionsPreservingScroll(localSelectedUris.keys.toSet())
+                                 } },
+                                  modifier = itemModifier,
+                                  imageRequestSizePx = imageRequestSizePx
+                              )
+                          }
+                      }
+                } else {
                     AdaptivePhotoGrid(
                          photos = displayPhotos,
                          modifier = Modifier
@@ -379,42 +414,37 @@ fun HomeScreen(
                                 detectTransformGestures { _, _, zoom, _ ->
                                     if (zoom > 1.05f) columns = (columns - 1).coerceAtLeast(2) else if (zoom < 0.95f) columns = (columns + 1).coerceAtMost(6)
                                 }
-                             }
-                             .then(if (isSelectionMode) Modifier.pointerInput(Unit) {
-                                detectDragGestures(
-                                    onDragStart = { offset: Offset ->
-                                        val info = gridState.layoutInfo
-                                        val item = info.visibleItemsInfo.firstOrNull { vi ->
-                                            val left = vi.offset.x.toFloat(); val top = vi.offset.y.toFloat(); val right = (vi.offset.x + vi.size.width).toFloat(); val bottom = (vi.offset.y + vi.size.height).toFloat()
-                                            offset.x >= left && offset.x <= right && offset.y >= top && offset.y <= bottom
-                                        }
-                                        item?.let { vi -> displayPhotos.getOrNull(vi.index)?.let { photo -> viewModel.setSelectionByUri(photo.imageUrl, true) } }
-                                    },
-                                    onDrag = { change, _ ->
-                                        val pos = change.position
-                                        val info = gridState.layoutInfo
-                                        val item = info.visibleItemsInfo.firstOrNull { vi ->
-                                            val left = vi.offset.x.toFloat(); val top = vi.offset.y.toFloat(); val right = (vi.offset.x + vi.size.width).toFloat(); val bottom = (vi.offset.y + vi.size.height).toFloat()
-                                            pos.x >= left && pos.x <= right && pos.y >= top && pos.y <= bottom
-                                        }
-                                        item?.let { vi -> displayPhotos.getOrNull(vi.index)?.let { photo -> viewModel.setSelectionByUri(photo.imageUrl, true) } }
-                                        change.consume()
-                                    }
-                                )
-                             } else Modifier),
+                             },
                          contentPadding = PaddingValues(4.dp),
                          gutter = 4.dp,
                          columns = columns,
-                         state = gridState
+                         state = gridState,
+                         // same treatment for in-memory list: make every 7th item a large tile
+                         bigItemPredicate = { index, _ -> index % 7 == 0 }
                      ) { index, photo, imageRequestSizePx, itemModifier ->
                          SelectablePhotoGridItem(
                             imageUrl = photo.imageUrl,
-                            isSelected = photo.isSelected,
+                            isSelected = localSelectedUris.containsKey(photo.imageUrl),
                             isSelectionMode = isSelectionMode,
                             onClick = {
-                                if (isSelectionMode) viewModel.toggleSelection(photo) else { selectedPhotoIndex = index; showPager = true }
+                                if (isSelectionMode) {
+                                    // toggle selection by URI using map for immediate UI feedback
+                                    val uri = photo.imageUrl
+                                    if (localSelectedUris.containsKey(uri)) localSelectedUris.remove(uri) else localSelectedUris[uri] = true
+                                    selectionFlushJob?.cancel()
+                                    selectionFlushJob = coroutineScope.launch {
+                                        delay(30)
+                                        applySelectionsPreservingScroll(localSelectedUris.keys.toSet())
+                                    }
+                                } else {
+                                    selectedPhotoIndex = index
+                                    showPager = true
+                                }
                             },
-                            onLongPress = { if (!isSelectionMode) viewModel.startSelectionMode(photo) },
+                            onLongPress = { if (!isSelectionMode) {
+                                localSelectedUris[photo.imageUrl] = true
+                                applySelectionsPreservingScroll(localSelectedUris.keys.toSet())
+                            } },
                             modifier = itemModifier,
                             imageRequestSizePx = imageRequestSizePx
                          )
@@ -445,6 +475,19 @@ fun HomeScreen(
                     Text(text = "photos:${displayPhotos.size}", style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(text = "pagerItems:${pagingCount}", style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Button(onClick = { viewModel.loadGallery(context) }) { Text("Reload") }
+                }
+
+                // Extra debug info when pager is visible: show pagerWindow size and selected index so we can diagnose swipe issues
+                if (showPager) {
+                    Box(
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f))
+                            .padding(8.dp)
+                            .align(Alignment.TopCenter)
+                    ) {
+                        Text(text = "pagerWindow:${pagerWindow.size} sel:$selectedPhotoIndex", style = MaterialTheme.typography.labelSmall)
+                    }
                 }
             }
 

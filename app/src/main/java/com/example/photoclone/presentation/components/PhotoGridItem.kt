@@ -27,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -131,7 +132,7 @@ fun SelectablePhotoGridItem(
                 stateDescription = stateDesc
             },
         shape = RoundedCornerShape(cornerRadius.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 8.dp else 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Box {
             PhotoImage(
@@ -152,27 +153,25 @@ fun SelectablePhotoGridItem(
                 ) {}
             }
 
-            // Checkbox indicator (fade/scale in when in selection mode)
-            androidx.compose.animation.AnimatedVisibility(
-                visible = isSelectionMode,
-                enter = fadeIn() + scaleIn(initialScale = 0.8f),
-                exit = fadeOut() + scaleOut(targetScale = 0.8f)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.CheckCircle,
-                    contentDescription = stateDesc,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(8.dp)
-                        .size(24.dp),
-                    tint = if (isSelected) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        // dimmed when not selected
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    }
-                )
-            }
+            // Checkbox indicator: always present but animated via alpha/scale to avoid layout churn
+            val iconAlpha by animateFloatAsState(targetValue = if (isSelectionMode) 1f else 0f)
+            val iconScale by animateFloatAsState(targetValue = if (isSelectionMode) 1f else 0.8f)
+
+            Icon(
+                imageVector = Icons.Default.CheckCircle,
+                contentDescription = stateDesc,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
+                    .size(24.dp)
+                    .scale(iconScale)
+                    .graphicsLayer { alpha = iconAlpha },
+                tint = if (isSelected) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                }
+            )
         }
     }
 }

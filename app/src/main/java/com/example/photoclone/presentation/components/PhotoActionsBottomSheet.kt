@@ -14,6 +14,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
+/**
+ * Component for the bottom sheet that appears when photos are selected, showing available actions.
+ * Each action is represented by an icon and a label, and triggers a callback when tapped.
+ * */
+
+
+// Bottom sheet with actions for selected photos.
 data class PhotoAction(
     val icon: ImageVector,
     val label: String,
@@ -35,6 +42,7 @@ fun PhotoActionsBottomSheet(
     onMoveToLocked: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    // Define the available action buttons shown in the sheet.
     val actions = listOf(
         PhotoAction(Icons.Outlined.Share, "Share", onShare),
         PhotoAction(Icons.Outlined.Add, "Add to album", onAddToAlbum),
@@ -57,7 +65,7 @@ fun PhotoActionsBottomSheet(
                 .fillMaxWidth()
                 .padding(vertical = 16.dp)
         ) {
-            // Header
+            // Header showing number of selected items.
             Text(
                 text = "$selectedCount selected",
                 style = MaterialTheme.typography.titleMedium,
@@ -70,7 +78,7 @@ fun PhotoActionsBottomSheet(
                 color = MaterialTheme.colorScheme.outlineVariant
             )
 
-            // Horizontally scrollable actions row
+            // Horizontally scrollable row of action buttons.
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -101,6 +109,7 @@ private fun PhotoActionButton(
     label: String,
     onClick: () -> Unit
 ) {
+    // Single circular icon button with a small label underneath.
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier

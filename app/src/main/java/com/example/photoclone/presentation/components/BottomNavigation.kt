@@ -1,12 +1,13 @@
 package com.example.photoclone.presentation.components
 
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.unit.dp
+import com.example.photoclone.presentation.theme.Dimens
 
 // Simple model for a bottom navigation entry.
 data class BottomNavItem(
@@ -24,9 +25,10 @@ fun PhotoBottomNavigation(
     modifier: Modifier = Modifier
 ) {
     NavigationBar(
-        modifier = modifier,
+        modifier = modifier.height(Dimens.Nav.bottomHeight),
         containerColor = MaterialTheme.colorScheme.surface,
-        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        tonalElevation = Dimens.Nav.elevation
     ) {
         items.forEachIndexed { index, item ->
             NavigationBarItem(
@@ -36,7 +38,7 @@ fun PhotoBottomNavigation(
                     Icon(
                         imageVector = item.icon,
                         contentDescription = item.title,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(Dimens.Nav.iconSize)
                     )
                 },
                 label = {

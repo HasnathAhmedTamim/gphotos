@@ -1,10 +1,6 @@
 package com.example.photoclone.presentation.components
 
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -93,7 +89,12 @@ fun SelectablePhotoGridItem(
     // Press-state interaction for subtle scale feedback
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
-    val pressScale by animateFloatAsState(targetValue = if (isPressed) 0.98f else 1f)
+
+    // Use faster animation spec to reduce perceived lag
+    val pressScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.98f else 1f,
+        animationSpec = androidx.compose.animation.core.tween(durationMillis = 100)
+    )
 
     // Animated alpha for overlay: stronger when selected, subtle tint when in selection mode
     val targetOverlayAlpha = when {
@@ -101,7 +102,10 @@ fun SelectablePhotoGridItem(
         isSelectionMode -> 0.06f
         else -> 0f
     }
-    val overlayAlpha by animateFloatAsState(targetValue = targetOverlayAlpha)
+    val overlayAlpha by animateFloatAsState(
+        targetValue = targetOverlayAlpha,
+        animationSpec = androidx.compose.animation.core.tween(durationMillis = 150)
+    )
 
     val haptic = LocalHapticFeedback.current
 
@@ -154,8 +158,14 @@ fun SelectablePhotoGridItem(
             }
 
             // Checkbox indicator: always present but animated via alpha/scale to avoid layout churn
-            val iconAlpha by animateFloatAsState(targetValue = if (isSelectionMode) 1f else 0f)
-            val iconScale by animateFloatAsState(targetValue = if (isSelectionMode) 1f else 0.8f)
+            val iconAlpha by animateFloatAsState(
+                targetValue = if (isSelectionMode) 1f else 0f,
+                animationSpec = androidx.compose.animation.core.tween(durationMillis = 150)
+            )
+            val iconScale by animateFloatAsState(
+                targetValue = if (isSelectionMode) 1f else 0.8f,
+                animationSpec = androidx.compose.animation.core.tween(durationMillis = 150)
+            )
 
             Icon(
                 imageVector = Icons.Default.CheckCircle,

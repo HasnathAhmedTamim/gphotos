@@ -15,7 +15,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -26,24 +31,65 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.graphicsLayer
 import com.example.photoclone.R
 
 /**
- * Full-screen photo pager with tap-to-toggle chrome and basic pinch/double-tap zoom.
- * - Single tap toggles chrome (back + action overlays).
- * - Pinch to zoom and pan when zoomed.
- * - Double-tap toggles between 1x and a chosen zoom (2x).
- * - Pager horizontal scrolling is disabled while the active page is zoomed (>1f).
+ * Metadata for a single photo (Google Photos style)
+ */
+data class PhotoMetadata(
+    val date: String? = null,
+    val location: String? = null,
+    val deviceInfo: String? = null,
+    val fileSize: String? = null,
+    val resolution: String? = null
+)
+
+/**
+ * Full-screen photo pager matching Google Photos UX (2026).
+ *
+ * Features:
+ * - Single tap toggles chrome (top + bottom bars)
+ * - Pinch to zoom and pan when zoomed
+ * - Double-tap toggles zoom (1x ↔ 2x)
+ * - Swipe left/right to navigate photos
+ * - Top bar: Back, Date/Info, More menu
+ * - Bottom bar: Favorite, Edit, Share, Add to Album, Delete
+ * - Info panel (swipe up bottom sheet)
+ *
+ * @param photoUrls List of image URLs
+ * @param initialPage Starting page index
+ * @param onDismiss Called when back is pressed
+ * @param onRequestPage Optional dynamic page loading callback
+ * @param photoMetadata Optional metadata for current photo (date, location, etc.)
+ * @param isFavorite Current photo favorite state
+ * @param onFavoriteToggle Toggle favorite for current photo
+ * @param onEdit Open edit screen for current photo
+ * @param onShare Share current photo
+ * @param onAddToAlbum Add current photo to album
+ * @param onDelete Delete current photo
+ * @param onMoreOptions Open more options menu
+ * @param onInfoClick Open info panel
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PhotoPager(
-    photoUrls: List<String?>, // list of remote/local image URLs (nullable entries allowed for unloaded paged items)
-    initialPage: Int, // starting page index
-    onDismiss: () -> Unit, // called when back is pressed
-    modifier: Modifier = Modifier
+    photoUrls: List<String?>,
+    initialPage: Int,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+    onRequestPage: ((Int) -> String?)? = null,
+    photoMetadata: ((Int) -> PhotoMetadata?)? = null,
+    isFavorite: ((Int) -> Boolean)? = null,
+    onFavoriteToggle: ((Int) -> Unit)? = null,
+    onEdit: ((Int) -> Unit)? = null,
+    onShare: ((Int) -> Unit)? = null,
+    onAddToAlbum: ((Int) -> Unit)? = null,
+    onDelete: ((Int) -> Unit)? = null,
+    onMoreOptions: ((Int) -> Unit)? = null,
+    onInfoClick: ((Int) -> Unit)? = null
 ) {
     // Pager state holds current page and pageCount
     val pagerState = rememberPagerState(
@@ -53,6 +99,19 @@ fun PhotoPager(
 
     // Map to keep per-page transform state so zoom/offset are preserved while swiping
     val perPageState = remember { mutableStateMapOf<Int, TransformState>() }
+
+    // Dynamic page loading: maintain a cache of loaded page URLs when onRequestPage is provided
+    val loadedPages = remember { mutableStateMapOf<Int, String?>() }
+
+    // Initialize loaded pages from photoUrls (only when onRequestPage is provided)
+    // For mock/in-memory mode, we access photoUrls directly so no need to populate cache
+    LaunchedEffect(photoUrls, onRequestPage) {
+        if (onRequestPage != null) {
+            photoUrls.forEachIndexed { index, url ->
+                if (url != null) loadedPages[index] = url
+            }
+        }
+    }
 
     // Chrome visibility toggled by single tap on the image; saved across recompositions
     var chromeVisible by rememberSaveable { mutableStateOf(true) }
@@ -68,9 +127,20 @@ fun PhotoPager(
         // Prefetch neighbors when current page changes
         LaunchedEffect(pagerState.currentPage) {
             val current = pagerState.currentPage
-            listOf(current - 1, current + 1).forEach { idx ->
-                photoUrls.getOrNull(idx)?.let { url ->
-                    prefetchImage(context, url)
+            listOf(current - 1, current, current + 1).forEach { idx ->
+                if (idx in 0 until photoUrls.size) {
+                    // Try to load from onRequestPage if available and not already cached
+                    if (onRequestPage != null && !loadedPages.containsKey(idx)) {
+                        val url = onRequestPage(idx)
+                        if (url != null) {
+                            loadedPages[idx] = url
+                            prefetchImage(context, url)
+                        }
+                    } else {
+                        // Use existing URL from photoUrls or loadedPages
+                        val url = loadedPages[idx] ?: photoUrls.getOrNull(idx)
+                        url?.let { prefetchImage(context, it) }
+                    }
                 }
             }
         }
@@ -150,7 +220,14 @@ fun PhotoPager(
                      }
                  ) {
                 if (photoUrls.isNotEmpty()) {
-                    val url = photoUrls[page]
+                    // When onRequestPage is provided (dynamic loading), use loadedPages cache
+                    // Otherwise (mock/in-memory mode), directly use photoUrls for immediate access
+                    val url = if (onRequestPage != null) {
+                        loadedPages[page] ?: photoUrls.getOrNull(page)
+                    } else {
+                        photoUrls.getOrNull(page)
+                    }
+
                     PhotoImage(
                         imageUrl = url,
                         contentDescription = stringResource(R.string.photo_index_description, page + 1, photoUrls.size),
@@ -171,34 +248,85 @@ fun PhotoPager(
             }
         }
 
-        // Top-left back button overlay (animated)
+        // Top bar overlay (Google Photos style) - animated with chrome
         AnimatedVisibility(
             visible = chromeVisible,
             enter = fadeIn(),
             exit = fadeOut(),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp)
+                .align(Alignment.TopCenter)
         ) {
-            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.TopStart) {
-                IconButton(onClick = onDismiss, modifier = Modifier.padding(4.dp)) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = stringResource(R.string.back),
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
+            Surface(
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                tonalElevation = 0.dp
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Back button
+                    IconButton(onClick = onDismiss) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.back),
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+
+                    // Center: Date/Location info (clickable to open info panel)
+                    val metadata = photoMetadata?.invoke(pagerState.currentPage)
+                    if (metadata != null) {
+                        TextButton(
+                            onClick = { onInfoClick?.invoke(pagerState.currentPage) },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                metadata.date?.let {
+                                    Text(
+                                        text = it,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                metadata.location?.let {
+                                    Text(
+                                        text = it,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+
+                    // More options menu
+                    IconButton(onClick = { onMoreOptions?.invoke(pagerState.currentPage) }) {
+                        Icon(
+                            imageVector = Icons.Filled.MoreVert,
+                            contentDescription = "More options",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                 }
             }
         }
 
-        // Small bottom action row overlay (share/edit/delete) — animated with chrome
+        // Bottom action bar (Google Photos style) — animated with chrome
         AnimatedVisibility(
             visible = chromeVisible,
             enter = fadeIn(),
             exit = fadeOut(),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
                 .align(Alignment.BottomCenter)
         ) {
             Surface(
@@ -206,22 +334,72 @@ fun PhotoPager(
                 tonalElevation = 4.dp,
                 shape = MaterialTheme.shapes.medium,
                 modifier = Modifier
+                    .padding(16.dp)
                     .wrapContentHeight()
             ) {
                 Row(
                     modifier = Modifier
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(onClick = { /* TODO: share */ }) {
-                        Icon(imageVector = Icons.Filled.Share, contentDescription = "Share")
+                    val currentPage = pagerState.currentPage
+                    val photoIsFavorite = isFavorite?.invoke(currentPage) ?: false
+
+                    // Favorite button (heart icon)
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        IconButton(onClick = { onFavoriteToggle?.invoke(currentPage) }) {
+                            Icon(
+                                imageVector = if (photoIsFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                                contentDescription = if (photoIsFavorite) "Remove from favorites" else "Add to favorites",
+                                tint = if (photoIsFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                     }
-                    IconButton(onClick = { /* TODO: edit */ }) {
-                        Icon(imageVector = Icons.Outlined.Edit, contentDescription = "Edit")
+
+                    // Edit button
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        IconButton(onClick = { onEdit?.invoke(currentPage) }) {
+                            Icon(
+                                imageVector = Icons.Outlined.Edit,
+                                contentDescription = "Edit",
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                     }
-                    IconButton(onClick = { /* TODO: delete */ }) {
-                        Icon(imageVector = Icons.Filled.Delete, contentDescription = "Delete")
+
+                    // Share button
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        IconButton(onClick = { onShare?.invoke(currentPage) }) {
+                            Icon(
+                                imageVector = Icons.Filled.Share,
+                                contentDescription = "Share",
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+
+                    // Add to album button
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        IconButton(onClick = { onAddToAlbum?.invoke(currentPage) }) {
+                            Icon(
+                                imageVector = Icons.Filled.Add,
+                                contentDescription = "Add to album",
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+
+                    // Delete button
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        IconButton(onClick = { onDelete?.invoke(currentPage) }) {
+                            Icon(
+                                imageVector = Icons.Filled.Delete,
+                                contentDescription = "Delete",
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                     }
                 }
             }

@@ -20,7 +20,6 @@ import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -164,30 +163,33 @@ fun PhotoPager(
             val isActive = page == pagerState.currentPage
 
             // Pointer handlers for taps/double-tap, multi-touch transforms (pinch) and panning when zoomed.
+            // KEY: Only add tap gestures when we need them (zoomed), otherwise let pager handle ALL touches
             Box(
                 Modifier
                     .fillMaxSize()
-                    // taps and double taps implemented with awaitFirstDown(requireUnconsumed=false)
-                    // so we don't consume the initial down event and allow the pager to detect
-                    // horizontal swipes. We still detect double-tap to toggle zoom.
-                    .pointerInput(page) {
-                        // Use detectTapGestures which cooperates with parent scrolling gestures
-                        // so horizontal swipes for the pager are not intercepted.
-                        val containerSize = this.size
-                        detectTapGestures(
-                            onTap = { chromeVisible = !chromeVisible },
-                            onDoubleTap = { tapPos: Offset ->
-                                // toggle between 1x and 2x zoom centered at the tap position
-                                val target = if (state.scale > 1.5f) 1f else 2f
-                                val containerCenter = Offset(containerSize.width / 2f, containerSize.height / 2f)
-                                val focusToCenter = tapPos - containerCenter
-                                val scaleRatio = target / state.scale
-                                val newOffset = (state.offset + focusToCenter) * scaleRatio - focusToCenter
-                                state.scale = target
-                                state.offset = newOffset.clampOffset()
+                    // Only add tap detection if zoomed OR if we're the active page
+                    .then(
+                        if (isActive) {
+                            Modifier.pointerInput(page) {
+                                detectTapGestures(
+                                    onTap = {
+                                        chromeVisible = !chromeVisible
+                                    },
+                                    onDoubleTap = { tapPos: Offset ->
+                                        // toggle between 1x and 2x zoom
+                                        val containerSize = size
+                                        val target = if (state.scale > 1.5f) 1f else 2f
+                                        val containerCenter = Offset(containerSize.width / 2f, containerSize.height / 2f)
+                                        val focusToCenter = tapPos - containerCenter
+                                        val scaleRatio = target / state.scale
+                                        val newOffset = (state.offset + focusToCenter) * scaleRatio - focusToCenter
+                                        state.scale = target
+                                        state.offset = newOffset.clampOffset()
+                                    }
+                                )
                             }
-                        )
-                    }
+                        } else Modifier
+                    )
                     // multi-touch pinch/rotate -> detectTransformGestures (doesn't run for single-finger swipes)
                     .pointerInput(page) {
                         detectTransformGestures { _, pan, zoom, _ ->
@@ -228,12 +230,13 @@ fun PhotoPager(
                         photoUrls.getOrNull(page)
                     }
 
+                    // Full-screen viewer: always use ORIGINAL size + Fit for maximum clarity
                     PhotoImage(
                         imageUrl = url,
                         contentDescription = stringResource(R.string.photo_index_description, page + 1, photoUrls.size),
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Fit,
-                        requestSizePx = null,
+                        contentScale = ContentScale.Fit,  // Fit maintains aspect ratio, no cropping
+                        useOriginalSize = true,  // Load full resolution, not thumbnail
                         showPlaceholder = true
                     )
                 }

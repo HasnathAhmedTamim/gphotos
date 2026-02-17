@@ -20,6 +20,7 @@ import com.example.photoclone.R
  * - contentDescription: accessibility text (caller should localize via stringResource)
  * - requestSizePx: optional size hint to help Coil decode the image at an appropriate size
  * - showPlaceholder: whether to show a placeholder drawable while loading
+ * - useOriginalSize: force ORIGINAL size for full resolution (viewer mode)
  */
 @Composable
 fun PhotoImage(
@@ -28,14 +29,23 @@ fun PhotoImage(
     modifier: Modifier = Modifier,
     contentScale: ContentScale = ContentScale.Crop,
     requestSizePx: Int? = null,
-    showPlaceholder: Boolean = true
+    showPlaceholder: Boolean = true,
+    useOriginalSize: Boolean = false
 ) {
     val context = LocalContext.current
-    val request = remember(imageUrl, requestSizePx) {
+    val request = remember(imageUrl, requestSizePx, useOriginalSize) {
         val builder = ImageRequest.Builder(context)
             .data(imageUrl)
             .crossfade(true)
-        requestSizePx?.let { builder.size(Size(it, it)) }
+
+        // For full-screen viewer: always use ORIGINAL size for maximum clarity
+        // For grid: use size hint to reduce memory usage
+        if (useOriginalSize) {
+            builder.size(Size.ORIGINAL)
+        } else {
+            requestSizePx?.let { builder.size(Size(it, it)) }
+        }
+
         // Using software bitmaps is more compatible with content:// URIs across Android versions/devices.
         builder.allowHardware(false)
         builder.build()

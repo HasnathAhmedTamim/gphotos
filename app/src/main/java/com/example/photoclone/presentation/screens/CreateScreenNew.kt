@@ -24,6 +24,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.example.photoclone.presentation.components.CreateNewBottomSheet
+import com.example.photoclone.presentation.model.CreateAction
+import com.example.photoclone.presentation.model.CreateSection
 
 /**
  * Google Photos-style Create Screen
@@ -42,8 +45,11 @@ fun CreateScreenNew(
     onNavigate: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // State for modal bottom sheet
+    var showCreateSheet by remember { mutableStateOf(false) }
+
     Scaffold(
-        containerColor = Color(0xFF121212), // Dark background
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             CreateTopBar()
         },
@@ -55,11 +61,22 @@ fun CreateScreenNew(
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
-        CreateScreenContent(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        )
+        Box(modifier = Modifier.fillMaxSize()) {
+            CreateScreenContent(
+                onCreateClick = { showCreateSheet = true },
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+            )
+
+            // Modal bottom sheet for create actions
+            if (showCreateSheet) {
+                CreateNewBottomSheet(
+                    onDismiss = { showCreateSheet = false },
+                    sections = getCreateSections()
+                )
+            }
+        }
     }
 }
 
@@ -75,7 +92,7 @@ private fun CreateTopBar() {
                 text = "Create",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = MaterialTheme.colorScheme.onBackground
             )
         },
         colors = TopAppBarDefaults.topAppBarColors(
@@ -88,7 +105,10 @@ private fun CreateTopBar() {
  * Main content in single LazyColumn
  */
 @Composable
-private fun CreateScreenContent(modifier: Modifier = Modifier) {
+private fun CreateScreenContent(
+    onCreateClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     // Sample data
     val tools = remember {
         listOf(
@@ -107,7 +127,7 @@ private fun CreateScreenContent(modifier: Modifier = Modifier) {
     ) {
         // Creative Header with overlapping photos
         item {
-            CreateHeader()
+            CreateHeader(onCreateClick = onCreateClick)
         }
 
         // Spacing
@@ -131,10 +151,10 @@ private fun CreateScreenContent(modifier: Modifier = Modifier) {
 }
 
 /**
- * Creative header with overlapping photos and "Create" text
+ * Creative header with overlapping photos and Create button
  */
 @Composable
-private fun CreateHeader() {
+private fun CreateHeader(onCreateClick: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -176,20 +196,28 @@ private fun CreateHeader() {
             contentScale = ContentScale.Crop
         )
 
-        // "Create" text in center (on top)
-        Surface(
+        // Create button in center (on top) - same design as the main button
+        Button(
+            onClick = onCreateClick,
             modifier = Modifier
                 .zIndex(3f)
-                .shadow(4.dp, RoundedCornerShape(24.dp)),
-            shape = RoundedCornerShape(24.dp),
-            color = Color(0xFF212121)
+                .shadow(4.dp, RoundedCornerShape(16.dp)),
+            shape = RoundedCornerShape(16.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary
+            ),
+            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
         ) {
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = "Create",
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "Create",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                modifier = Modifier.padding(horizontal = 32.dp, vertical = 16.dp)
+                text = "Create new",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
             )
         }
     }
@@ -214,14 +242,14 @@ private fun SectionTitle(
             text = title,
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.SemiBold,
-            color = Color.White
+            color = MaterialTheme.colorScheme.onBackground
         )
 
         if (onViewAllClick != null) {
             TextButton(onClick = onViewAllClick) {
                 Text(
                     "View all",
-                    color = Color.White.copy(alpha = 0.7f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -267,7 +295,7 @@ private fun ToolCard(
         onClick = onClick,
         modifier = modifier.height(100.dp),
         shape = RoundedCornerShape(16.dp),
-        color = Color(0xFF212121)
+        color = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Column(
             modifier = Modifier
@@ -280,7 +308,7 @@ private fun ToolCard(
                 imageVector = tool.icon,
                 contentDescription = tool.title,
                 modifier = Modifier.size(32.dp),
-                tint = Color.White
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -289,7 +317,7 @@ private fun ToolCard(
                 text = tool.title,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
                 maxLines = 2
             )
@@ -306,9 +334,8 @@ private fun GooglePhotos4TabBottomBar(
     onNavigate: (String) -> Unit
 ) {
     NavigationBar(
-        containerColor = Color(0xFF1E1E1E),
-        contentColor = Color.White,
-        tonalElevation = 0.dp
+        containerColor = MaterialTheme.colorScheme.surface,
+        tonalElevation = 3.dp
     ) {
         NavigationBarItem(
             selected = currentRoute == "photos",
@@ -319,14 +346,7 @@ private fun GooglePhotos4TabBottomBar(
                     "Photos"
                 )
             },
-            label = { Text("Photos") },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = Color.White,
-                selectedTextColor = Color.White,
-                unselectedIconColor = Color.White.copy(alpha = 0.6f),
-                unselectedTextColor = Color.White.copy(alpha = 0.6f),
-                indicatorColor = Color.White.copy(alpha = 0.2f)
-            )
+            label = { Text("Photos") }
         )
 
         NavigationBarItem(
@@ -338,14 +358,7 @@ private fun GooglePhotos4TabBottomBar(
                     "Collections"
                 )
             },
-            label = { Text("Collections") },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = Color.White,
-                selectedTextColor = Color.White,
-                unselectedIconColor = Color.White.copy(alpha = 0.6f),
-                unselectedTextColor = Color.White.copy(alpha = 0.6f),
-                indicatorColor = Color.White.copy(alpha = 0.2f)
-            )
+            label = { Text("Collections") }
         )
 
         NavigationBarItem(
@@ -357,14 +370,7 @@ private fun GooglePhotos4TabBottomBar(
                     "Create"
                 )
             },
-            label = { Text("Create") },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = Color.White,
-                selectedTextColor = Color.White,
-                unselectedIconColor = Color.White.copy(alpha = 0.6f),
-                unselectedTextColor = Color.White.copy(alpha = 0.6f),
-                indicatorColor = Color.White.copy(alpha = 0.2f)
-            )
+            label = { Text("Create") }
         )
 
         NavigationBarItem(
@@ -376,16 +382,86 @@ private fun GooglePhotos4TabBottomBar(
                     "Search"
                 )
             },
-            label = { Text("Search") },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = Color.White,
-                selectedTextColor = Color.White,
-                unselectedIconColor = Color.White.copy(alpha = 0.6f),
-                unselectedTextColor = Color.White.copy(alpha = 0.6f),
-                indicatorColor = Color.White.copy(alpha = 0.2f)
-            )
+            label = { Text("Search") }
         )
     }
+}
+
+/**
+ * Get the sections and actions for the Create New bottom sheet
+ * Exactly matches Google Photos layout
+ */
+@Composable
+private fun getCreateSections(): List<CreateSection> {
+    return listOf(
+        // Primary actions (no title)
+        CreateSection(
+            title = null,
+            actions = listOf(
+                CreateAction(
+                    id = "album",
+                    title = "Album",
+                    icon = Icons.Outlined.PhotoAlbum,
+                    onClick = { /* TODO: Create album */ }
+                ),
+                CreateAction(
+                    id = "collage",
+                    title = "Collage",
+                    icon = Icons.Outlined.ViewModule,
+                    onClick = { /* TODO: Create collage */ }
+                ),
+                CreateAction(
+                    id = "highlight_video",
+                    title = "Highlight video",
+                    icon = Icons.Outlined.Movie,
+                    hasNewBadge = true,
+                    onClick = { /* TODO: Create highlight video */ }
+                ),
+                CreateAction(
+                    id = "cinematic_photo",
+                    title = "Cinematic photo",
+                    icon = Icons.Outlined.CameraAlt,
+                    onClick = { /* TODO: Create cinematic photo */ }
+                ),
+                CreateAction(
+                    id = "animation",
+                    title = "Animation",
+                    icon = Icons.Outlined.Animation,
+                    onClick = { /* TODO: Create animation */ }
+                ),
+                CreateAction(
+                    id = "remix",
+                    title = "Remix",
+                    icon = Icons.Outlined.Shuffle,
+                    onClick = { /* TODO: Create remix */ }
+                )
+            )
+        ),
+        // Secondary actions
+        CreateSection(
+            title = null,
+            actions = listOf(
+                CreateAction(
+                    id = "get_photos",
+                    title = "Get photos",
+                    icon = Icons.Outlined.Download,
+                    onClick = { /* TODO: Get photos */ }
+                ),
+                CreateAction(
+                    id = "share_partner",
+                    title = "Share with a partner",
+                    icon = Icons.Outlined.PersonAdd,
+                    onClick = { /* TODO: Share with partner */ }
+                ),
+                CreateAction(
+                    id = "import",
+                    title = "Import from other places",
+                    icon = Icons.Outlined.CloudUpload,
+                    onClick = { /* TODO: Import */ }
+                )
+            )
+        )
+    )
 }
 
 /**

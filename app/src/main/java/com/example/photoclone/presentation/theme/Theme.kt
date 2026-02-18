@@ -20,9 +20,10 @@ private val DarkColorScheme = darkColorScheme(
     onBackground = OnSurfaceDark,
     surface = SurfaceDark,
     onSurface = OnSurfaceDark,
-    surfaceVariant = SurfaceDark,
+    surfaceVariant = Color(0xFF2C2C2C), // Lighter surface for cards in dark mode
     onSurfaceVariant = SecondaryTextDark,
-    outline = Divider
+    outline = Color(0xFF3C3C3C),
+    outlineVariant = Color(0xFF2C2C2C)
 )
 
 private val LightColorScheme = lightColorScheme(
@@ -38,9 +39,10 @@ private val LightColorScheme = lightColorScheme(
     onBackground = OnSurfaceLight,
     surface = SurfaceLight,
     onSurface = OnSurfaceLight,
-    surfaceVariant = SurfaceLight,
+    surfaceVariant = Color(0xFFF0F0F0), // Slightly darker surface for cards in light mode
     onSurfaceVariant = SecondaryTextLight,
-    outline = Divider
+    outline = Color(0xFFE0E0E0),
+    outlineVariant = Color(0xFFF0F0F0)
 )
 
 @Composable

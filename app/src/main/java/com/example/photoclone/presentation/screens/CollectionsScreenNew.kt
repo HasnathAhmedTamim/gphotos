@@ -73,7 +73,7 @@ private fun CollectionsTopBar() {
                 text = "Collections",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = MaterialTheme.colorScheme.onBackground
             )
         },
         actions = {
@@ -81,7 +81,7 @@ private fun CollectionsTopBar() {
                 Icon(
                     imageVector = Icons.Default.MoreVert,
                     contentDescription = "More options",
-                    tint = Color.White
+                    tint = MaterialTheme.colorScheme.onBackground
                 )
             }
         },
@@ -182,7 +182,7 @@ private fun CollectionsContent(
                 text = "Albums",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
         }
@@ -215,7 +215,7 @@ private fun CollectionsContent(
             if (category != categories.last()) {
                 HorizontalDivider(
                     modifier = Modifier.padding(vertical = 4.dp),
-                    color = Color.White.copy(alpha = 0.1f)
+                    color = MaterialTheme.colorScheme.outlineVariant
                 )
             }
         }
@@ -270,7 +270,7 @@ private fun AlbumCard(
                 .aspectRatio(1f),
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(
-                containerColor = Color(0xFF2C2C2C)
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
             )
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
@@ -289,14 +289,14 @@ private fun AlbumCard(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(Color(0xFF3C3C3C)),
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.PhotoAlbum,
                             contentDescription = null,
                             modifier = Modifier.size(48.dp),
-                            tint = Color.White.copy(alpha = 0.6f)
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                         )
                     }
                 }
@@ -310,7 +310,7 @@ private fun AlbumCard(
             text = album.title,
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Medium,
-            color = Color.White,
+            color = MaterialTheme.colorScheme.onBackground,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
@@ -319,7 +319,7 @@ private fun AlbumCard(
         Text(
             text = "${album.itemCount} items",
             style = MaterialTheme.typography.bodySmall,
-            color = Color.White.copy(alpha = 0.7f)
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
@@ -348,7 +348,7 @@ private fun CategoryRow(
                 imageVector = category.icon,
                 contentDescription = category.name,
                 modifier = Modifier.size(24.dp),
-                tint = Color.White
+                tint = MaterialTheme.colorScheme.onBackground
             )
 
             Spacer(modifier = Modifier.width(16.dp))
@@ -358,7 +358,7 @@ private fun CategoryRow(
                 text = category.name,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Medium,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.weight(1f)
             )
 
@@ -367,7 +367,7 @@ private fun CategoryRow(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = "Navigate",
                 modifier = Modifier.size(24.dp),
-                tint = Color.White.copy(alpha = 0.6f)
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -382,9 +382,8 @@ private fun GooglePhotos4TabBottomBar(
     onNavigate: (String) -> Unit
 ) {
     NavigationBar(
-        containerColor = Color(0xFF1E1E1E),
-        contentColor = Color.White,
-        tonalElevation = 0.dp
+        containerColor = MaterialTheme.colorScheme.surface,
+        tonalElevation = 3.dp
     ) {
         NavigationBarItem(
             selected = currentRoute == "photos",
@@ -395,14 +394,7 @@ private fun GooglePhotos4TabBottomBar(
                     "Photos"
                 )
             },
-            label = { Text("Photos") },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = Color.White,
-                selectedTextColor = Color.White,
-                unselectedIconColor = Color.White.copy(alpha = 0.6f),
-                unselectedTextColor = Color.White.copy(alpha = 0.6f),
-                indicatorColor = Color.White.copy(alpha = 0.2f)
-            )
+            label = { Text("Photos") }
         )
 
         NavigationBarItem(
@@ -414,14 +406,7 @@ private fun GooglePhotos4TabBottomBar(
                     "Collections"
                 )
             },
-            label = { Text("Collections") },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = Color.White,
-                selectedTextColor = Color.White,
-                unselectedIconColor = Color.White.copy(alpha = 0.6f),
-                unselectedTextColor = Color.White.copy(alpha = 0.6f),
-                indicatorColor = Color.White.copy(alpha = 0.2f)
-            )
+            label = { Text("Collections") }
         )
 
         NavigationBarItem(
@@ -433,14 +418,7 @@ private fun GooglePhotos4TabBottomBar(
                     "Create"
                 )
             },
-            label = { Text("Create") },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = Color.White,
-                selectedTextColor = Color.White,
-                unselectedIconColor = Color.White.copy(alpha = 0.6f),
-                unselectedTextColor = Color.White.copy(alpha = 0.6f),
-                indicatorColor = Color.White.copy(alpha = 0.2f)
-            )
+            label = { Text("Create") }
         )
 
         NavigationBarItem(
@@ -452,14 +430,7 @@ private fun GooglePhotos4TabBottomBar(
                     "Search"
                 )
             },
-            label = { Text("Search") },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = Color.White,
-                selectedTextColor = Color.White,
-                unselectedIconColor = Color.White.copy(alpha = 0.6f),
-                unselectedTextColor = Color.White.copy(alpha = 0.6f),
-                indicatorColor = Color.White.copy(alpha = 0.2f)
-            )
+            label = { Text("Search") }
         )
     }
 }

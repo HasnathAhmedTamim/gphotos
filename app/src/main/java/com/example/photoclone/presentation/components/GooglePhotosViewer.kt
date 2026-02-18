@@ -355,8 +355,8 @@ private fun ZoomablePhotoView(
                                 // translate tapped point towards center
                                 val dx = (containerSize.width / 2f - tapOffset.x).coerceIn(-maxOffsetX, maxOffsetX)
                                 val dy = (containerSize.height / 2f - tapOffset.y).coerceIn(-maxOffsetY, maxOffsetY)
-                                offsetXAnim.animateTo(dx, animationSpec = tween(300))
-                                offsetYAnim.animateTo(dy, animationSpec = tween(300))
+                                offsetXAnim.animateTo(dx, animationSpec = tween(250))
+                                offsetYAnim.animateTo(dy, animationSpec = tween(250))
                             }
                         }
                     }
@@ -391,11 +391,31 @@ private fun ZoomablePhotoView(
                 // This allows swipe gestures to pass through to HorizontalPager
             }
     ) {
+        // Loading indicator
+        var isLoading by remember { mutableStateOf(true) }
+
+        if (isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    color = Color.White.copy(alpha = 0.7f),
+                    modifier = Modifier.size(40.dp),
+                    strokeWidth = 3.dp
+                )
+            }
+        }
+
         AsyncImage(
             model = ImageRequest.Builder(context)
                 .data(imageUrl)
                 .size(Size.ORIGINAL)
-                .crossfade(true)
+                .crossfade(200)
+                .listener(
+                    onSuccess = { _, _ -> isLoading = false },
+                    onError = { _, _ -> isLoading = false }
+                )
                 .build(),
             contentDescription = null,
             contentScale = ContentScale.Fit,

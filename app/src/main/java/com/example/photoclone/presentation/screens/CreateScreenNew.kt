@@ -27,6 +27,7 @@ import coil.request.ImageRequest
 import com.example.photoclone.presentation.components.CreateNewBottomSheet
 import com.example.photoclone.presentation.model.CreateAction
 import com.example.photoclone.presentation.model.CreateSection
+import com.example.photoclone.presentation.theme.PhotosBlueLightMode
 
 /**
  * Google Photos-style Create Screen

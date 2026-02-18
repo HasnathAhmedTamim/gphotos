@@ -23,6 +23,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.photoclone.presentation.model.AlbumItem
 import com.example.photoclone.presentation.model.CategoryItem
+import com.example.photoclone.presentation.theme.PhotosBlueLightMode
 
 /**
  * Google Photos-style Collections Screen

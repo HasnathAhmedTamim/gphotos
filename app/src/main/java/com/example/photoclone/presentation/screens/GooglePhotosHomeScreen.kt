@@ -1,6 +1,7 @@
 package com.example.photoclone.presentation.screens
 
 import androidx.compose.animation.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -12,13 +13,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.photoclone.R
 import com.example.photoclone.presentation.components.CreateNewBottomSheet
 import com.example.photoclone.presentation.components.GooglePhotosGrid
 import com.example.photoclone.presentation.components.GooglePhotosViewer
 import com.example.photoclone.presentation.model.CreateAction
 import com.example.photoclone.presentation.model.CreateSection
+import com.example.photoclone.presentation.theme.PhotosBlueLightMode
 
 /**
  * Google Photos Style Home Screen
@@ -286,10 +290,10 @@ private fun GooglePhotosTopAppBar(
                     modifier = Modifier.fillMaxWidth()
                 )
             } else {
-                Text(
-                    "Photos",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
+                Image(
+                    painter = painterResource(id = R.drawable.google_photos_logo),
+                    contentDescription = "Google Photos",
+                    modifier = Modifier.height(28.dp)
                 )
             }
         },

@@ -195,7 +195,7 @@ private fun GooglePhotoGridItem(
                 .size(400, 400)
                 .crossfade(true)
                 .build(),
-            contentDescription = null,
+            contentDescription = "photo_item_${'$'}{imageUrl.hashCode()}",
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
         )
@@ -323,7 +323,7 @@ private fun SelectionBottomSheetContent(
         ) {
             Icon(
                 if (isExpanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                contentDescription = null
+                contentDescription = if (isExpanded) "Collapse" else "Expand"
             )
             Spacer(Modifier.width(8.dp))
             Text(if (isExpanded) "Less options" else "More options")
@@ -394,4 +394,3 @@ private fun ActionButton(
         )
     }
 }
-

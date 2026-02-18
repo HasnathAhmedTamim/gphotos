@@ -79,7 +79,8 @@ fun GooglePhotosHomeScreen(
                 GooglePhotosViewer(
                     photos = photos,
                     initialPage = selectedPhotoIndex,
-                    onDismiss = { showViewer = false }
+                    onDismiss = { showViewer = false },
+                    onDismissWithIndex = { idx -> selectedPhotoIndex = idx }
                 )
             } else {
                 Column {

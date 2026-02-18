@@ -25,15 +25,18 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import coil.size.Size
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * Google Photos Style Photo Viewer
@@ -49,6 +52,7 @@ fun GooglePhotosViewer(
     photos: List<String>,
     initialPage: Int = 0,
     onDismiss: () -> Unit,
+    onDismissWithIndex: (Int) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val pagerState = rememberPagerState(
@@ -59,6 +63,9 @@ fun GooglePhotosViewer(
     var uiVisible by remember { mutableStateOf(true) }
     var showInfo by remember { mutableStateOf(false) }
     var showActions by remember { mutableStateOf(false) }
+
+    // Track if the currently visible page is zoomed (scale > 1f)
+    var isCurrentPageZoomed by remember { mutableStateOf(false) }
 
     // Auto-hide UI after 3 seconds
     LaunchedEffect(uiVisible) {
@@ -73,16 +80,29 @@ fun GooglePhotosViewer(
             .fillMaxSize()
             .background(Color.Black)
     ) {
-        BackHandler { onDismiss() }
+        BackHandler {
+            // report current index before dismissing
+            onDismissWithIndex(pagerState.currentPage)
+            onDismiss()
+        }
 
-        // Photo Pager
+        // Photo Pager - disable swiping when the currently visible image is zoomed
         HorizontalPager(
             state = pagerState,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
+            userScrollEnabled = !isCurrentPageZoomed
         ) { page ->
             ZoomablePhotoView(
                 imageUrl = photos[page],
-                onTap = { uiVisible = !uiVisible }
+                onTap = { uiVisible = !uiVisible },
+                isActive = page == pagerState.currentPage,
+                onZoomChanged = { zoomed ->
+                    // only update when this page is active
+                    if (page == pagerState.currentPage) {
+                        isCurrentPageZoomed = zoomed
+                    }
+                },
+                resetTrigger = pagerState.currentPage
             )
         }
 
@@ -95,7 +115,10 @@ fun GooglePhotosViewer(
             GooglePhotosTopBar(
                 currentPage = pagerState.currentPage + 1,
                 totalPages = photos.size,
-                onBack = onDismiss,
+                onBack = {
+                    onDismissWithIndex(pagerState.currentPage)
+                    onDismiss()
+                },
                 onInfo = { showInfo = true }
             )
         }
@@ -271,33 +294,101 @@ private fun PageIndicator(
 @Composable
 private fun ZoomablePhotoView(
     imageUrl: String,
-    onTap: () -> Unit
+    onTap: () -> Unit,
+    isActive: Boolean = true,
+    onZoomChanged: (Boolean) -> Unit = {},
+    resetTrigger: Int = 0
 ) {
-    var scale by remember { mutableStateOf(1f) }
-    var offset by remember { mutableStateOf(Offset.Zero) }
+    // Animated scale for smoother double-tap behavior
+    val scaleAnim = remember { Animatable(1f) }
+    val offsetXAnim = remember { Animatable(0f) }
+    val offsetYAnim = remember { Animatable(0f) }
+    val coroutineScope = rememberCoroutineScope()
+
+    var containerSize by remember { mutableStateOf(IntSize.Zero) }
     val context = LocalContext.current
+
+    // Track last reset so we only act when resetTrigger changes
+    var lastReset by remember { mutableStateOf(resetTrigger) }
+    LaunchedEffect(resetTrigger) {
+        if (resetTrigger != lastReset) {
+            lastReset = resetTrigger
+            // animate back to identity
+            coroutineScope.launch {
+                scaleAnim.animateTo(1f, animationSpec = tween(durationMillis = 250))
+                offsetXAnim.animateTo(0f, animationSpec = tween(durationMillis = 250))
+                offsetYAnim.animateTo(0f, animationSpec = tween(durationMillis = 250))
+            }
+            onZoomChanged(false)
+        }
+    }
+
+    // notify parent when zoom state changes (only when active page)
+    LaunchedEffect(scaleAnim.value, isActive) {
+        if (isActive) {
+            onZoomChanged(scaleAnim.value > 1f)
+        }
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .pointerInput(Unit) {
+            .onSizeChanged { containerSize = it }
+            .pointerInput(isActive) {
                 detectTapGestures(
-                    onTap = { onTap() },
-                    onDoubleTap = {
-                        scale = if (scale > 1f) 1f else 2.5f
-                        if (scale == 1f) offset = Offset.Zero
+                    onTap = { if (isActive) onTap() },
+                    onDoubleTap = { tapOffset ->
+                        if (!isActive) return@detectTapGestures
+                        coroutineScope.launch {
+                            val target = if (scaleAnim.value > 1f) 1f else 2.5f
+                            // animate scale
+                            scaleAnim.animateTo(target, animationSpec = tween(durationMillis = 300))
+                            // when zooming out, reset offsets
+                            if (target == 1f) {
+                                offsetXAnim.animateTo(0f, animationSpec = tween(300))
+                                offsetYAnim.animateTo(0f, animationSpec = tween(300))
+                            } else {
+                                // try to center the tapped point roughly by adjusting offsets
+                                // compute approximate max offsets based on container and scale
+                                val maxOffsetX = (containerSize.width * (scaleAnim.value - 1f)) / 2f
+                                val maxOffsetY = (containerSize.height * (scaleAnim.value - 1f)) / 2f
+                                // translate tapped point towards center
+                                val dx = (containerSize.width / 2f - tapOffset.x).coerceIn(-maxOffsetX, maxOffsetX)
+                                val dy = (containerSize.height / 2f - tapOffset.y).coerceIn(-maxOffsetY, maxOffsetY)
+                                offsetXAnim.animateTo(dx, animationSpec = tween(300))
+                                offsetYAnim.animateTo(dy, animationSpec = tween(300))
+                            }
+                        }
                     }
                 )
             }
-            .pointerInput(Unit) {
-                detectTransformGestures { _, pan, zoom, _ ->
-                    scale = (scale * zoom).coerceIn(1f, 5f)
-                    if (scale > 1f) {
-                        offset += pan
-                    } else {
-                        offset = Offset.Zero
+            .pointerInput(isActive, scaleAnim.value > 1f) {
+                // Only intercept transform gestures when zoomed
+                // When not zoomed, let the HorizontalPager handle swipe gestures
+                if (scaleAnim.value > 1f) {
+                    detectTransformGestures { _, pan, zoom, _ ->
+                        if (!isActive) return@detectTransformGestures
+                        coroutineScope.launch {
+                            val newScale = (scaleAnim.value * zoom).coerceIn(1f, 5f)
+                            scaleAnim.snapTo(newScale)
+
+                            if (scaleAnim.value > 1f) {
+                                // update offsets and clamp
+                                val maxX = (containerSize.width * (scaleAnim.value - 1f)) / 2f
+                                val maxY = (containerSize.height * (scaleAnim.value - 1f)) / 2f
+                                val nextX = (offsetXAnim.value + pan.x).coerceIn(-maxX, maxX)
+                                val nextY = (offsetYAnim.value + pan.y).coerceIn(-maxY, maxY)
+                                offsetXAnim.snapTo(nextX)
+                                offsetYAnim.snapTo(nextY)
+                            } else {
+                                offsetXAnim.snapTo(0f)
+                                offsetYAnim.snapTo(0f)
+                            }
+                        }
                     }
                 }
+                // When not zoomed, don't add any gesture detection here
+                // This allows swipe gestures to pass through to HorizontalPager
             }
     ) {
         AsyncImage(
@@ -311,10 +402,11 @@ private fun ZoomablePhotoView(
             modifier = Modifier
                 .fillMaxSize()
                 .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                    translationX = offset.x
-                    translationY = offset.y
+                    val s = scaleAnim.value
+                    scaleX = s
+                    scaleY = s
+                    translationX = offsetXAnim.value
+                    translationY = offsetYAnim.value
                 }
         )
     }

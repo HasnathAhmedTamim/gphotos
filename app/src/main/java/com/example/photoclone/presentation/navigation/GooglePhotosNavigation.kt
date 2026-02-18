@@ -4,7 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.photoclone.presentation.screens.CollectionsScreen
+import com.example.photoclone.presentation.screens.CollectionsScreenNew
 import com.example.photoclone.presentation.screens.CreateScreenNew
 import com.example.photoclone.presentation.screens.GooglePhotosHomeScreen
 import com.example.photoclone.presentation.screens.ProfileScreen
@@ -46,7 +46,7 @@ fun GooglePhotosNavigation() {
         }
 
         composable("collections") {
-            CollectionsScreen(
+            CollectionsScreenNew(
                 currentRoute = "collections",
                 onNavigate = { route ->
                     navController.navigate(route) {

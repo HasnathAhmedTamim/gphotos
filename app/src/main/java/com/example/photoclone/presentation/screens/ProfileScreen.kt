@@ -413,7 +413,7 @@ private fun FooterLinks() {
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "© ${java.time.Year.now()} PhotoClone",
+            text = "© ${java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)} PhotoClone",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center

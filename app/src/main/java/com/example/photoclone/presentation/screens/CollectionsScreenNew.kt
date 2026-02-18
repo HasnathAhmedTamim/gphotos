@@ -50,7 +50,7 @@ fun CollectionsScreenNew(
                 onNavigate = onNavigate
             )
         },
-        containerColor = Color(0xFF121212), // Dark background
+        containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
         CollectionsContent(

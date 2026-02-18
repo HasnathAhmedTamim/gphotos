@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -22,7 +23,6 @@ import com.example.photoclone.presentation.components.GooglePhotosGrid
 import com.example.photoclone.presentation.components.GooglePhotosViewer
 import com.example.photoclone.presentation.model.CreateAction
 import com.example.photoclone.presentation.model.CreateSection
-import com.example.photoclone.presentation.theme.PhotosBlueLightMode
 
 /**
  * Google Photos Style Home Screen
@@ -49,20 +49,23 @@ fun GooglePhotosHomeScreen(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            GooglePhotosTopAppBar(
-                searchQuery = searchQuery,
-                showSearch = showSearch,
-                isSelectionMode = isSelectionMode,
-                onSearchQueryChange = { searchQuery = it },
-                onSearchToggle = { showSearch = !showSearch },
-                onProfileClick = { onNavigate("profile") },
-                onAddClick = { showCreateSheet = true }
-            )
+            // Only show regular top bar when not in viewer mode
+            if (!showViewer) {
+                GooglePhotosTopAppBar(
+                    searchQuery = searchQuery,
+                    showSearch = showSearch,
+                    isSelectionMode = isSelectionMode,
+                    onSearchQueryChange = { searchQuery = it },
+                    onSearchToggle = { showSearch = !showSearch },
+                    onProfileClick = { onNavigate("profile") },
+                    onAddClick = { showCreateSheet = true }
+                )
+            }
         },
         bottomBar = {
-            // Hide bottom navigation during selection mode
+            // Hide bottom navigation during selection mode or when viewing photo
             AnimatedVisibility(
-                visible = !isSelectionMode,
+                visible = !isSelectionMode && !showViewer,
                 enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
                 exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
             ) {

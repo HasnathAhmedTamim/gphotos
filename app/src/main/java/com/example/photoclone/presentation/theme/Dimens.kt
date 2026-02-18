@@ -25,7 +25,7 @@ object Dimens {
         val elevation = 3.dp
     }
 
-    // Selection (SelectionBottomSheet, PhotoGridItem selection)
+    // Selection (PhotoGridItem selection)
     object Selection {
         val checkboxSize = 24.dp
         val checkboxPadding = 8.dp

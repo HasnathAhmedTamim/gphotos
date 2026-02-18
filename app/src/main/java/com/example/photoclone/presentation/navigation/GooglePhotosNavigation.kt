@@ -7,6 +7,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.photoclone.presentation.screens.CollectionsScreen
 import com.example.photoclone.presentation.screens.CreateScreenNew
 import com.example.photoclone.presentation.screens.GooglePhotosHomeScreen
+import com.example.photoclone.presentation.screens.ProfileScreen
 
 /**
  * Google Photos 4-Tab Navigation (2025-2026 UI)
@@ -78,6 +79,12 @@ fun GooglePhotosNavigation() {
                         restoreState = true
                     }
                 }
+            )
+        }
+
+        composable("profile") {
+            ProfileScreen(
+                navController = navController
             )
         }
     }

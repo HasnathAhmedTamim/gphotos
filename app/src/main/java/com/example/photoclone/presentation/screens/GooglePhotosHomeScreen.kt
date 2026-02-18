@@ -50,7 +50,7 @@ fun GooglePhotosHomeScreen(
                 isSelectionMode = isSelectionMode,
                 onSearchQueryChange = { searchQuery = it },
                 onSearchToggle = { showSearch = !showSearch },
-                onProfileClick = { },
+                onProfileClick = { onNavigate("profile") },
                 onAddClick = { showCreateSheet = true }
             )
         },

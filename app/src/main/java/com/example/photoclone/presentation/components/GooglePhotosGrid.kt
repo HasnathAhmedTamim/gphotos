@@ -1,5 +1,6 @@
 package com.example.photoclone.presentation.components
 
+import androidx.compose.animation.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -8,6 +9,7 @@ import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -55,7 +57,7 @@ fun GooglePhotosGrid(
                 start = 2.dp,
                 end = 2.dp,
                 top = 2.dp,
-                bottom = 2.dp
+                bottom = if (isSelectionMode) 220.dp else 2.dp // Add padding when selection mode active
             ),
             horizontalArrangement = Arrangement.spacedBy(2.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp)
@@ -105,15 +107,17 @@ fun GooglePhotosGrid(
             }
         }
 
-        // Modal Bottom Sheet for Selection Actions
-        if (showBottomSheet) {
-            ModalBottomSheet(
-                onDismissRequest = {
-                    selectedPhotos = emptySet()
-                    showBottomSheet = false
-                },
-                containerColor = MaterialTheme.colorScheme.surface,
-                dragHandle = { BottomSheetDefaults.DragHandle() }
+        // Selection action bar at bottom (like Google Photos)
+        androidx.compose.animation.AnimatedVisibility(
+            visible = showBottomSheet && selectedPhotos.isNotEmpty(),
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+            modifier = Modifier.align(Alignment.BottomCenter)
+        ) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.surface,
+                shadowElevation = 8.dp
             ) {
                 SelectionBottomSheetContent(
                     selectedCount = selectedPhotos.size,
@@ -123,29 +127,38 @@ fun GooglePhotosGrid(
                     },
                     onShare = {
                         // TODO: Implement share functionality
-                        // sharePhotos(selectedPhotos.map { photos[it] })
+                        selectedPhotos = emptySet()
+                        showBottomSheet = false
                     },
                     onAddToAlbum = {
                         // TODO: Implement add to album functionality
-                        // showAlbumPicker(selectedPhotos.map { photos[it] })
+                        selectedPhotos = emptySet()
+                        showBottomSheet = false
                     },
                     onCreate = {
                         // TODO: Implement create functionality
+                        selectedPhotos = emptySet()
+                        showBottomSheet = false
                     },
                     onDelete = {
                         // TODO: Implement delete functionality
-                        // deletePhotos(selectedPhotos.map { photos[it] })
                         selectedPhotos = emptySet()
                         showBottomSheet = false
                     },
                     onBackup = {
                         // TODO: Implement backup functionality
+                        selectedPhotos = emptySet()
+                        showBottomSheet = false
                     },
                     onArchive = {
                         // TODO: Implement archive functionality
+                        selectedPhotos = emptySet()
+                        showBottomSheet = false
                     },
                     onMoveToLocked = {
                         // TODO: Implement locked folder functionality
+                        selectedPhotos = emptySet()
+                        showBottomSheet = false
                     }
                 )
             }
@@ -248,6 +261,7 @@ private fun GooglePhotoGridItem(
 
 /**
  * Content for the Modal Bottom Sheet displaying selection actions
+ * Google Photos style with primary and expandable secondary actions
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -268,13 +282,13 @@ private fun SelectionBottomSheetContent(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
-            .padding(bottom = 32.dp)
+            .padding(bottom = 24.dp)
     ) {
         // Header with count and clear button
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp),
+                .padding(vertical = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -286,13 +300,20 @@ private fun SelectionBottomSheetContent(
             )
 
             TextButton(onClick = onClear) {
-                Text("Clear", fontWeight = FontWeight.Medium)
+                Text(
+                    "Clear",
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
         }
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+        HorizontalDivider(
+            modifier = Modifier.padding(vertical = 12.dp),
+            color = MaterialTheme.colorScheme.outlineVariant
+        )
 
-        // Primary actions
+        // Primary actions - Google Photos style
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -300,17 +321,22 @@ private fun SelectionBottomSheetContent(
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             ActionButton(
-                icon = Icons.Filled.Share,
+                icon = Icons.Outlined.Share,
                 label = "Share",
                 onClick = onShare
             )
             ActionButton(
-                icon = Icons.Filled.Add,
+                icon = Icons.Outlined.Add,
                 label = "Add",
                 onClick = onAddToAlbum
             )
             ActionButton(
-                icon = Icons.Filled.Delete,
+                icon = Icons.Outlined.Create,
+                label = "Create",
+                onClick = onCreate
+            )
+            ActionButton(
+                icon = Icons.Outlined.Delete,
                 label = "Delete",
                 onClick = onDelete
             )
@@ -319,46 +345,69 @@ private fun SelectionBottomSheetContent(
         // Expandable more actions button
         TextButton(
             onClick = { isExpanded = !isExpanded },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
         ) {
             Icon(
                 if (isExpanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                contentDescription = if (isExpanded) "Collapse" else "Expand"
+                contentDescription = if (isExpanded) "Collapse" else "Expand",
+                tint = MaterialTheme.colorScheme.primary
             )
             Spacer(Modifier.width(8.dp))
-            Text(if (isExpanded) "Less options" else "More options")
+            Text(
+                if (isExpanded) "Show less" else "More options",
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Medium
+            )
         }
 
-        // Additional actions (expandable)
-        if (isExpanded) {
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+        // Additional actions (expandable with animation)
+        androidx.compose.animation.AnimatedVisibility(
+            visible = isExpanded,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut()
+        ) {
+            Column {
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 12.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant
+                )
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 16.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                ActionButton(
-                    icon = Icons.Filled.CloudUpload,
-                    label = "Backup",
-                    onClick = onBackup
-                )
-                ActionButton(
-                    icon = Icons.Filled.Archive,
-                    label = "Archive",
-                    onClick = onArchive
-                )
-                ActionButton(
-                    icon = Icons.Filled.Lock,
-                    label = "Lock",
-                    onClick = onMoveToLocked
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    ActionButton(
+                        icon = Icons.Outlined.CloudUpload,
+                        label = "Backup",
+                        onClick = onBackup
+                    )
+                    ActionButton(
+                        icon = Icons.Outlined.Archive,
+                        label = "Archive",
+                        onClick = onArchive
+                    )
+                    ActionButton(
+                        icon = Icons.Outlined.Lock,
+                        label = "Lock",
+                        onClick = onMoveToLocked
+                    )
+                }
             }
         }
+
+        // Bottom spacing
+        Spacer(modifier = Modifier.height(8.dp))
     }
 }
 
+/**
+ * Action button for selection bottom sheet
+ * Google Photos style with circular icon button and label
+ */
 @Composable
 private fun ActionButton(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
@@ -367,19 +416,20 @@ private fun ActionButton(
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.width(80.dp)
+        modifier = Modifier.width(72.dp)
     ) {
-        FilledIconButton(
+        FilledTonalIconButton(
             onClick = onClick,
             modifier = Modifier.size(56.dp),
-            colors = IconButtonDefaults.filledIconButtonColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer
+            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
             )
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(26.dp)
             )
         }
 
@@ -388,6 +438,8 @@ private fun ActionButton(
         Text(
             text = label,
             style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
             modifier = Modifier.fillMaxWidth(),
             textAlign = TextAlign.Center

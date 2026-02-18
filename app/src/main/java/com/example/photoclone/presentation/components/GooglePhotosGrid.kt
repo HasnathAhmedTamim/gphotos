@@ -12,23 +12,23 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 
 /**
- * Google Photos Style Grid with Dynamic Bottom Sheet
+ * Google Photos Style Grid with Modal Bottom Sheet
  * - Adaptive 3-column layout
- * - Multi-selection support
+ * - Multi-selection support with modal bottom sheet
  * - Date headers
- * - Uses new DynamicBottomSheet system (PhotoSelectionSheet)
+ * - Selection actions in bottom sheet
  */
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun GooglePhotosGrid(
     photos: List<String>,
@@ -38,9 +38,12 @@ fun GooglePhotosGrid(
 ) {
     var selectedPhotos by remember { mutableStateOf(setOf<Int>()) }
     var isSelectionMode by remember { mutableStateOf(false) }
+    var showBottomSheet by remember { mutableStateOf(false) }
 
-    // Notify parent about selection mode changes
-    LaunchedEffect(isSelectionMode) {
+    // Update selection mode and bottom sheet visibility
+    LaunchedEffect(selectedPhotos.size) {
+        isSelectionMode = selectedPhotos.isNotEmpty()
+        showBottomSheet = selectedPhotos.isNotEmpty()
         onSelectionModeChange(isSelectionMode)
     }
 
@@ -74,17 +77,12 @@ fun GooglePhotosGrid(
                             } else {
                                 selectedPhotos + index
                             }
-                            // Exit selection mode if no items selected
-                            if (selectedPhotos.isEmpty()) {
-                                isSelectionMode = false
-                            }
                         } else {
                             onPhotoClick(index)
                         }
                     },
                     onLongClick = {
                         if (!isSelectionMode) {
-                            isSelectionMode = true
                             selectedPhotos = setOf(index)
                         }
                     }
@@ -107,32 +105,51 @@ fun GooglePhotosGrid(
             }
         }
 
-        // NEW: PhotoSelectionSheet using DynamicBottomSheet
-        PhotoSelectionSheet(
-            selectedCount = selectedPhotos.size,
-            isVisible = isSelectionMode && selectedPhotos.isNotEmpty(),
-            onDismiss = {
-                selectedPhotos = emptySet()
-                isSelectionMode = false
-            },
-            onShare = {
-                // TODO: Implement share functionality
-                // sharePhotos(selectedPhotos.map { photos[it] })
-            },
-            onDelete = {
-                // TODO: Implement delete functionality
-                // deletePhotos(selectedPhotos.map { photos[it] })
-                selectedPhotos = emptySet()
-                isSelectionMode = false
-            },
-            onAddToAlbum = {
-                // TODO: Implement add to album functionality
-                // showAlbumPicker(selectedPhotos.map { photos[it] })
-            },
-            onMore = {
-                // TODO: Implement more options
+        // Modal Bottom Sheet for Selection Actions
+        if (showBottomSheet) {
+            ModalBottomSheet(
+                onDismissRequest = {
+                    selectedPhotos = emptySet()
+                    showBottomSheet = false
+                },
+                containerColor = MaterialTheme.colorScheme.surface,
+                dragHandle = { BottomSheetDefaults.DragHandle() }
+            ) {
+                SelectionBottomSheetContent(
+                    selectedCount = selectedPhotos.size,
+                    onClear = {
+                        selectedPhotos = emptySet()
+                        showBottomSheet = false
+                    },
+                    onShare = {
+                        // TODO: Implement share functionality
+                        // sharePhotos(selectedPhotos.map { photos[it] })
+                    },
+                    onAddToAlbum = {
+                        // TODO: Implement add to album functionality
+                        // showAlbumPicker(selectedPhotos.map { photos[it] })
+                    },
+                    onCreate = {
+                        // TODO: Implement create functionality
+                    },
+                    onDelete = {
+                        // TODO: Implement delete functionality
+                        // deletePhotos(selectedPhotos.map { photos[it] })
+                        selectedPhotos = emptySet()
+                        showBottomSheet = false
+                    },
+                    onBackup = {
+                        // TODO: Implement backup functionality
+                    },
+                    onArchive = {
+                        // TODO: Implement archive functionality
+                    },
+                    onMoveToLocked = {
+                        // TODO: Implement locked folder functionality
+                    }
+                )
             }
-        )
+        }
     }
 }
 
@@ -228,3 +245,153 @@ private fun GooglePhotoGridItem(
         }
     }
 }
+
+/**
+ * Content for the Modal Bottom Sheet displaying selection actions
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SelectionBottomSheetContent(
+    selectedCount: Int,
+    onClear: () -> Unit,
+    onShare: () -> Unit,
+    onAddToAlbum: () -> Unit,
+    onCreate: () -> Unit,
+    onDelete: () -> Unit,
+    onBackup: () -> Unit,
+    onArchive: () -> Unit,
+    onMoveToLocked: () -> Unit
+) {
+    var isExpanded by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .padding(bottom = 32.dp)
+    ) {
+        // Header with count and clear button
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "$selectedCount selected",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            TextButton(onClick = onClear) {
+                Text("Clear", fontWeight = FontWeight.Medium)
+            }
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+        // Primary actions
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            ActionButton(
+                icon = Icons.Filled.Share,
+                label = "Share",
+                onClick = onShare
+            )
+            ActionButton(
+                icon = Icons.Filled.Add,
+                label = "Add",
+                onClick = onAddToAlbum
+            )
+            ActionButton(
+                icon = Icons.Filled.Delete,
+                label = "Delete",
+                onClick = onDelete
+            )
+        }
+
+        // Expandable more actions button
+        TextButton(
+            onClick = { isExpanded = !isExpanded },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(
+                if (isExpanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                contentDescription = null
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(if (isExpanded) "Less options" else "More options")
+        }
+
+        // Additional actions (expandable)
+        if (isExpanded) {
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                ActionButton(
+                    icon = Icons.Filled.CloudUpload,
+                    label = "Backup",
+                    onClick = onBackup
+                )
+                ActionButton(
+                    icon = Icons.Filled.Archive,
+                    label = "Archive",
+                    onClick = onArchive
+                )
+                ActionButton(
+                    icon = Icons.Filled.Lock,
+                    label = "Lock",
+                    onClick = onMoveToLocked
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ActionButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.width(80.dp)
+    ) {
+        FilledIconButton(
+            onClick = onClick,
+            modifier = Modifier.size(56.dp),
+            colors = IconButtonDefaults.filledIconButtonColors(
+                containerColor = MaterialTheme.colorScheme.secondaryContainer
+            )
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            maxLines = 1,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center
+        )
+    }
+}
+

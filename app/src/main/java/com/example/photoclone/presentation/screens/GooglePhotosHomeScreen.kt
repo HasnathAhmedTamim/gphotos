@@ -43,6 +43,7 @@ fun GooglePhotosHomeScreen(
     var showCreateSheet by remember { mutableStateOf(false) }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             GooglePhotosTopAppBar(
                 searchQuery = searchQuery,
@@ -312,7 +313,8 @@ private fun GooglePhotosTopAppBar(
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = Color.Transparent
+            containerColor = MaterialTheme.colorScheme.surface,
+            scrolledContainerColor = MaterialTheme.colorScheme.surface
         )
     )
 }
@@ -324,7 +326,7 @@ private fun GooglePhotosBottomBar(
 ) {
     NavigationBar(
         containerColor = MaterialTheme.colorScheme.surface,
-        tonalElevation = 0.dp
+        tonalElevation = 3.dp
     ) {
         NavigationBarItem(
             selected = currentRoute == "photos",

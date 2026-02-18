@@ -10,9 +10,9 @@ val PhotosRed = Color(0xFFEA4335)
 val PhotosYellow = Color(0xFFFBBC04)
 val PhotosGreen = Color(0xFF34A853)
 
-// Light Theme Colors (Official Google Photos Spec)
-val BackgroundLight = Color(0xFFFFFFFF)       // Pure white
-val SurfaceLight = Color(0xFFFFFFFF)          // Same as background (Google Photos spec)
+// Light Theme Colors (Official Google Photos Spec + UX Improvements)
+val BackgroundLight = Color(0xFFF5F5F5)       // Slightly gray background for contrast
+val SurfaceLight = Color(0xFFFFFFFF)          // Pure white for TopAppBar (creates separation)
 val SurfaceVariantLight = Color(0xFFF1F3F4)   // Exact match
 val OnSurfaceLight = Color(0xFF202124)
 val SecondaryTextLight = Color(0xFF5F6368)

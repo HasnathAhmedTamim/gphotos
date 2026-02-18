@@ -104,8 +104,7 @@ private fun ProfileTopAppBar(
         },
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.surface,
-            navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
-            titleContentColor = MaterialTheme.colorScheme.onSurface
+            scrolledContainerColor = MaterialTheme.colorScheme.surface
         )
     )
 }

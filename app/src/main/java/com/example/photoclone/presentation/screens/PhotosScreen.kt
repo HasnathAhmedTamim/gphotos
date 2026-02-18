@@ -7,6 +7,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.photoclone.presentation.components.GooglePhotosGrid
 import com.example.photoclone.presentation.components.GooglePhotosViewer
@@ -35,7 +36,11 @@ fun PhotosScreen(
                     IconButton(onClick = { /* TODO: Show menu */ }) {
                         Icon(Icons.Default.MoreVert, contentDescription = "More")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surface
+                )
             )
         }
     ) { paddingValues ->

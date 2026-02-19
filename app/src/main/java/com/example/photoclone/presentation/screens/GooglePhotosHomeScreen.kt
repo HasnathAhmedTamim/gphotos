@@ -34,6 +34,7 @@ import com.example.photoclone.presentation.model.CreateSection
 fun GooglePhotosHomeScreen(
     photos: List<String>,
     currentRoute: String,
+    appliedFilter: String? = null,
     onNavigate: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -43,6 +44,14 @@ fun GooglePhotosHomeScreen(
     var showSearch by remember { mutableStateOf(false) }
     var isSelectionMode by remember { mutableStateOf(false) }
     var showCreateSheet by remember { mutableStateOf(false) }
+    // Quick filters: list + selected state (hoisted)
+    // Only these three are actionable per request
+    val quickFilters = listOf("Recent", "Favorites", "Videos")
+    val snackbarHostState = remember { SnackbarHostState() }
+    var activeFilter by remember { mutableStateOf(appliedFilter) }
+    LaunchedEffect(appliedFilter) {
+        activeFilter = appliedFilter
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -88,19 +97,54 @@ fun GooglePhotosHomeScreen(
             } else {
                 Column {
                     // Collapsible suggestions chip row
-                    CollapsibleSuggestionsRow()
+                    CollapsibleSuggestionsRow(
+                        filters = quickFilters,
+                        onFilterClick = { filter ->
+                            // Map filter to route and navigate
+                            when (filter) {
+                                "Recent" -> onNavigate("filter/recent")
+                                "Favorites" -> onNavigate("filter/favorites")
+                                "Videos" -> onNavigate("filter/videos")
+                                else -> {}
+                            }
+                        }
+                    )
+
+                    // If a filter was applied via the detail screen, use it to compute displayPhotos
+                    val displayPhotos = remember(photos, activeFilter) {
+                        if (activeFilter.isNullOrEmpty()) photos else {
+                            when (activeFilter?.lowercase()) {
+                                "recent" -> photos.takeLast(12.coerceAtMost(photos.size))
+                                "favorites" -> photos.filterIndexed { idx, _ -> idx % 5 == 0 }
+                                "videos" -> photos.filterIndexed { idx, _ -> idx % 3 == 0 }
+                                else -> photos
+                            }
+                        }
+                    }
 
                     // Photo grid
                     GooglePhotosGrid(
-                        photos = photos,
+                        photos = displayPhotos,
                         onPhotoClick = { index ->
-                            selectedPhotoIndex = index
+                            // Map clicked photo back to original photos index for viewer
+                            val originalIndex = photos.indexOf(displayPhotos[index]).takeIf { it >= 0 } ?: index
+                            selectedPhotoIndex = originalIndex
                             showViewer = true
                         },
                         onSelectionModeChange = { inSelectionMode ->
                             isSelectionMode = inSelectionMode
                         }
                     )
+
+                    // Show a snackbar when a filter is applied offering to clear it
+                    LaunchedEffect(activeFilter) {
+                        if (!activeFilter.isNullOrEmpty()) {
+                            val res = snackbarHostState.showSnackbar("Filter applied: ${activeFilter}", actionLabel = "Clear")
+                            if (res == SnackbarResult.ActionPerformed) {
+                                activeFilter = null
+                            }
+                        }
+                    }
                 }
             }
 
@@ -112,6 +156,10 @@ fun GooglePhotosHomeScreen(
                     sections = getCreateSections()
                 )
             }
+        }
+        // Snackbar host
+        Box(modifier = Modifier.fillMaxSize()) {
+            SnackbarHost(hostState = snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
         }
     }
 }
@@ -195,7 +243,10 @@ private fun getCreateSections(): List<CreateSection> {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CollapsibleSuggestionsRow() {
+private fun CollapsibleSuggestionsRow(
+    filters: List<String>,
+    onFilterClick: (String) -> Unit
+) {
     var isExpanded by remember { mutableStateOf(true) }
 
     Column {
@@ -230,7 +281,10 @@ private fun CollapsibleSuggestionsRow() {
             enter = expandVertically() + fadeIn(),
             exit = shrinkVertically() + fadeOut()
         ) {
-            SuggestionsChips()
+            SuggestionsChips(
+                filters = filters,
+                onFilterClick = onFilterClick
+            )
         }
 
         HorizontalDivider(thickness = 1.dp)
@@ -239,7 +293,10 @@ private fun CollapsibleSuggestionsRow() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SuggestionsChips() {
+private fun SuggestionsChips(
+    filters: List<String>,
+    onFilterClick: (String) -> Unit
+) {
     Surface(
         color = MaterialTheme.colorScheme.surface,
         modifier = Modifier.fillMaxWidth()
@@ -250,21 +307,22 @@ private fun SuggestionsChips() {
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            SuggestionChip(
-                onClick = { },
-                label = { Text("Recent") },
-                icon = { Icon(Icons.Filled.AccessTime, null, Modifier.size(18.dp)) }
-            )
-            SuggestionChip(
-                onClick = { },
-                label = { Text("Favorites") },
-                icon = { Icon(Icons.Filled.Favorite, null, Modifier.size(18.dp)) }
-            )
-            SuggestionChip(
-                onClick = { },
-                label = { Text("Videos") },
-                icon = { Icon(Icons.Filled.VideoLibrary, null, Modifier.size(18.dp)) }
-            )
+            filters.forEach { filter ->
+                FilterChip(
+                    selected = false,
+                    onClick = { onFilterClick(filter) },
+                    leadingIcon = {
+                        when (filter) {
+                            "Recent" -> Icon(Icons.Filled.AccessTime, contentDescription = null, Modifier.size(18.dp))
+                            "Favorites" -> Icon(Icons.Filled.Favorite, contentDescription = null, Modifier.size(18.dp))
+                            "Videos" -> Icon(Icons.Filled.VideoLibrary, contentDescription = null, Modifier.size(18.dp))
+                            else -> Icon(Icons.Filled.FilterList, contentDescription = null, Modifier.size(18.dp))
+                        }
+                    },
+                    label = { Text(filter) },
+                    shape = MaterialTheme.shapes.large
+                )
+            }
         }
     }
 }

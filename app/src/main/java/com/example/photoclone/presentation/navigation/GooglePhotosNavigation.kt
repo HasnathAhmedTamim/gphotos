@@ -12,6 +12,7 @@ import com.example.photoclone.presentation.screens.CreateScreenNew
 import com.example.photoclone.presentation.screens.GooglePhotosHomeScreen
 import com.example.photoclone.presentation.screens.ProfileScreen
 import com.example.photoclone.presentation.screens.NotificationScreen
+import com.example.photoclone.presentation.screens.FilterDetailScreen
 
 /**
  * Google Photos 4-Tab Navigation (2025-2026 UI)
@@ -37,9 +38,14 @@ fun GooglePhotosNavigation() {
         startDestination = "photos"
     ) {
         composable("photos") {
+            val applied = navController.currentBackStackEntry?.savedStateHandle?.get<String>("applied_filter")
+            // clear after reading
+            if (applied != null) navController.currentBackStackEntry?.savedStateHandle?.remove<String>("applied_filter")
+
             GooglePhotosHomeScreen(
                 photos = demoPhotos,
                 currentRoute = "photos",
+                appliedFilter = applied,
                 onNavigate = { route ->
                     navController.navigate(route) {
                         launchSingleTop = true
@@ -97,9 +103,13 @@ fun GooglePhotosNavigation() {
         }
 
         composable("search") {
+            val applied = navController.currentBackStackEntry?.savedStateHandle?.get<String>("applied_filter")
+            if (applied != null) navController.currentBackStackEntry?.savedStateHandle?.remove<String>("applied_filter")
+
             GooglePhotosHomeScreen(
                 photos = demoPhotos,
                 currentRoute = "search",
+                appliedFilter = applied,
                 onNavigate = { route ->
                     navController.navigate(route) {
                         launchSingleTop = true
@@ -111,6 +121,40 @@ fun GooglePhotosNavigation() {
 
         composable("notifications") {
             NotificationScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable("filter/recent") {
+            FilterDetailScreen(
+                filterType = "recent",
+                onBack = { navController.popBackStack() },
+                onApply = { filter ->
+                    // Write applied filter to the previous backstack entry so Home can observe it
+                    navController.previousBackStackEntry?.savedStateHandle?.set("applied_filter", filter)
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable("filter/favorites") {
+            FilterDetailScreen(
+                filterType = "favorites",
+                onBack = { navController.popBackStack() },
+                onApply = { filter ->
+                    navController.previousBackStackEntry?.savedStateHandle?.set("applied_filter", filter)
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable("filter/videos") {
+            FilterDetailScreen(
+                filterType = "videos",
+                onBack = { navController.popBackStack() },
+                onApply = { filter ->
+                    navController.previousBackStackEntry?.savedStateHandle?.set("applied_filter", filter)
+                    navController.popBackStack()
+                }
+            )
         }
 
         composable("profile") {

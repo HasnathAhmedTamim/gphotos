@@ -13,7 +13,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.example.photoclone.R
@@ -48,16 +47,18 @@ fun GooglePhotosHomeScreen(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            // Only show regular top bar when not in viewer mode
+            // Keep original top app bar (not the in-content search bar)
             if (!showViewer) {
                 GooglePhotosTopAppBar(
                     searchQuery = searchQuery,
                     showSearch = showSearch,
                     isSelectionMode = isSelectionMode,
                     onSearchQueryChange = { searchQuery = it },
-                    onSearchToggle = { showSearch = !showSearch },
                     onProfileClick = { onNavigate("profile") },
-                    onAddClick = { showCreateSheet = true }
+                    onAddClick = { showCreateSheet = true },
+                    // indicate that an in-content search bar is used to avoid duplicating actions
+                    useInContentSearch = false,
+                    onNotificationsClick = { onNavigate("notifications") }
                 )
             }
         },
@@ -275,9 +276,10 @@ private fun GooglePhotosTopAppBar(
     showSearch: Boolean,
     isSelectionMode: Boolean,
     onSearchQueryChange: (String) -> Unit,
-    onSearchToggle: () -> Unit,
     onProfileClick: () -> Unit,
-    onAddClick: () -> Unit
+    onAddClick: () -> Unit,
+    useInContentSearch: Boolean = false,
+    onNotificationsClick: () -> Unit = {}
 ) {
     TopAppBar(
         title = {
@@ -286,10 +288,6 @@ private fun GooglePhotosTopAppBar(
                     value = searchQuery,
                     onValueChange = onSearchQueryChange,
                     placeholder = { Text("Search your photos") },
-                    colors = TextFieldDefaults.colors(
-                        unfocusedContainerColor = Color.Transparent,
-                        focusedContainerColor = Color.Transparent
-                    ),
                     modifier = Modifier.fillMaxWidth()
                 )
             } else {
@@ -301,22 +299,24 @@ private fun GooglePhotosTopAppBar(
             }
         },
         actions = {
-            if (!isSelectionMode) {
-                IconButton(onClick = onAddClick) {
-                    Icon(Icons.Filled.Add, contentDescription = "Add")
+            // Always show notifications icon (replace the previous Search duplication)
+            IconButton(onClick = onNotificationsClick) {
+                Icon(Icons.Filled.Notifications, contentDescription = "Notifications")
+            }
+            // When an in-content SearchBar is present we avoid duplicating Add/Profile/Search buttons
+            if (!useInContentSearch) {
+                if (!isSelectionMode) {
+                    IconButton(onClick = onAddClick) {
+                        Icon(Icons.Filled.Add, contentDescription = "Add")
+                    }
                 }
-            }
-            IconButton(onClick = onSearchToggle) {
-                Icon(
-                    if (showSearch) Icons.Filled.Close else Icons.Filled.Search,
-                    contentDescription = "Search"
-                )
-            }
-            IconButton(onClick = onProfileClick) {
-                Icon(
-                    Icons.Filled.AccountCircle,
-                    contentDescription = "Profile"
-                )
+                // NOTE: Search action intentionally removed from top bar to avoid duplication with in-content SearchBar
+                IconButton(onClick = onProfileClick) {
+                    Icon(
+                        Icons.Filled.AccountCircle,
+                        contentDescription = "Profile"
+                    )
+                }
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(

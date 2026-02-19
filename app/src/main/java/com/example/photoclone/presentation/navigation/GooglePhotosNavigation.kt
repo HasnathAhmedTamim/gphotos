@@ -11,6 +11,7 @@ import com.example.photoclone.presentation.screens.CollectionsScreenNew
 import com.example.photoclone.presentation.screens.CreateScreenNew
 import com.example.photoclone.presentation.screens.GooglePhotosHomeScreen
 import com.example.photoclone.presentation.screens.ProfileScreen
+import com.example.photoclone.presentation.screens.NotificationScreen
 
 /**
  * Google Photos 4-Tab Navigation (2025-2026 UI)
@@ -106,6 +107,10 @@ fun GooglePhotosNavigation() {
                     }
                 }
             )
+        }
+
+        composable("notifications") {
+            NotificationScreen(onBack = { navController.popBackStack() })
         }
 
         composable("profile") {

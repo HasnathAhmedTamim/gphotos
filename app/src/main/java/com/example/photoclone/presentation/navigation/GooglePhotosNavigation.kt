@@ -1,9 +1,12 @@
 package com.example.photoclone.presentation.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.example.photoclone.presentation.screens.AlbumDetailScreen
 import com.example.photoclone.presentation.screens.CollectionsScreenNew
 import com.example.photoclone.presentation.screens.CreateScreenNew
 import com.example.photoclone.presentation.screens.GooglePhotosHomeScreen
@@ -53,6 +56,29 @@ fun GooglePhotosNavigation() {
                         launchSingleTop = true
                         restoreState = true
                     }
+                },
+                onAlbumClick = { albumId, albumName ->
+                    navController.navigate("album/$albumId/$albumName")
+                }
+            )
+        }
+
+        composable(
+            route = "album/{albumId}/{albumName}",
+            arguments = listOf(
+                navArgument("albumId") { type = NavType.StringType },
+                navArgument("albumName") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val albumId = backStackEntry.arguments?.getString("albumId") ?: ""
+            val albumName = backStackEntry.arguments?.getString("albumName") ?: ""
+
+            AlbumDetailScreen(
+                albumId = albumId,
+                albumName = albumName,
+                onBack = { navController.popBackStack() },
+                onPhotoClick = { uri, index ->
+                    // TODO: Navigate to photo viewer
                 }
             )
         }

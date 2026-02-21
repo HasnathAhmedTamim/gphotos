@@ -6,6 +6,7 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -16,11 +17,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.example.photoclone.R
-import com.example.photoclone.presentation.components.CreateNewBottomSheet
 import com.example.photoclone.presentation.components.GooglePhotosGrid
 import com.example.photoclone.presentation.components.GooglePhotosViewer
+import com.example.photoclone.presentation.components.CreateNewBottomSheet
 import com.example.photoclone.presentation.model.CreateAction
 import com.example.photoclone.presentation.model.CreateSection
+import com.example.photoclone.presentation.screens.getCreateSections
 
 /**
  * Google Photos Style Home Screen
@@ -149,11 +151,10 @@ fun GooglePhotosHomeScreen(
             }
 
             // Create New Bottom Sheet (independent of selection mode)
-            // Placed inside Box but after content so it overlays everything
             if (showCreateSheet) {
                 CreateNewBottomSheet(
                     onDismiss = { showCreateSheet = false },
-                    sections = getCreateSections()
+                    sections = getCreateSections { route -> onNavigate(route) }
                 )
             }
         }
@@ -164,82 +165,6 @@ fun GooglePhotosHomeScreen(
     }
 }
 
-/**
- * Get the sections and actions for the Create New bottom sheet
- * Exactly matches Google Photos layout
- */
-@Composable
-private fun getCreateSections(): List<CreateSection> {
-    return listOf(
-        // Primary actions (no title)
-        CreateSection(
-            title = null,
-            actions = listOf(
-                CreateAction(
-                    id = "album",
-                    title = "Album",
-                    icon = Icons.Outlined.PhotoAlbum,
-                    onClick = { /* TODO: Create album */ }
-                ),
-                CreateAction(
-                    id = "collage",
-                    title = "Collage",
-                    icon = Icons.Outlined.ViewModule,
-                    onClick = { /* TODO: Create collage */ }
-                ),
-                CreateAction(
-                    id = "highlight_video",
-                    title = "Highlight video",
-                    icon = Icons.Outlined.Movie,
-                    hasNewBadge = true,
-                    onClick = { /* TODO: Create highlight video */ }
-                ),
-                CreateAction(
-                    id = "cinematic_photo",
-                    title = "Cinematic photo",
-                    icon = Icons.Outlined.CameraAlt,
-                    onClick = { /* TODO: Create cinematic photo */ }
-                ),
-                CreateAction(
-                    id = "animation",
-                    title = "Animation",
-                    icon = Icons.Outlined.Animation,
-                    onClick = { /* TODO: Create animation */ }
-                ),
-                CreateAction(
-                    id = "remix",
-                    title = "Remix",
-                    icon = Icons.Outlined.Shuffle,
-                    onClick = { /* TODO: Create remix */ }
-                )
-            )
-        ),
-        // Secondary actions (with "Get photos" title section)
-        CreateSection(
-            title = null,
-            actions = listOf(
-                CreateAction(
-                    id = "get_photos",
-                    title = "Get photos",
-                    icon = Icons.Outlined.Download,
-                    onClick = { /* TODO: Get photos */ }
-                ),
-                CreateAction(
-                    id = "share_partner",
-                    title = "Share with a partner",
-                    icon = Icons.Outlined.PersonAdd,
-                    onClick = { /* TODO: Share with partner */ }
-                ),
-                CreateAction(
-                    id = "import",
-                    title = "Import from other places",
-                    icon = Icons.Outlined.CloudUpload,
-                    onClick = { /* TODO: Import */ }
-                )
-            )
-        )
-    )
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

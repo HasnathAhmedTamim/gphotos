@@ -393,7 +393,7 @@ private fun GooglePhotos4TabBottomBar(
  * Exactly matches Google Photos layout
  */
 @Composable
-private fun getCreateSections(onNavigate: (String) -> Unit): List<CreateSection> {
+fun getCreateSections(onNavigate: (String) -> Unit): List<CreateSection> {
     return listOf(
         // Primary actions (no title)
         CreateSection(
@@ -473,4 +473,3 @@ private data class CreateTool(
     val title: String,
     val icon: ImageVector
 )
-

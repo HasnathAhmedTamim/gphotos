@@ -73,7 +73,7 @@ fun CreateScreenNew(
             if (showCreateSheet) {
                 CreateNewBottomSheet(
                     onDismiss = { showCreateSheet = false },
-                    sections = getCreateSections()
+                    sections = getCreateSections(onNavigate)
                 )
             }
         }
@@ -393,7 +393,7 @@ private fun GooglePhotos4TabBottomBar(
  * Exactly matches Google Photos layout
  */
 @Composable
-private fun getCreateSections(): List<CreateSection> {
+private fun getCreateSections(onNavigate: (String) -> Unit): List<CreateSection> {
     return listOf(
         // Primary actions (no title)
         CreateSection(
@@ -403,38 +403,38 @@ private fun getCreateSections(): List<CreateSection> {
                     id = "album",
                     title = "Album",
                     icon = Icons.Outlined.PhotoAlbum,
-                    onClick = { /* TODO: Create album */ }
+                    onClick = { onNavigate("create/album") }
                 ),
                 CreateAction(
                     id = "collage",
                     title = "Collage",
                     icon = Icons.Outlined.ViewModule,
-                    onClick = { /* TODO: Create collage */ }
+                    onClick = { onNavigate("create/collage") }
                 ),
                 CreateAction(
                     id = "highlight_video",
                     title = "Highlight video",
                     icon = Icons.Outlined.Movie,
                     hasNewBadge = true,
-                    onClick = { /* TODO: Create highlight video */ }
+                    onClick = { onNavigate("create/highlight_video") }
                 ),
                 CreateAction(
                     id = "cinematic_photo",
                     title = "Cinematic photo",
                     icon = Icons.Outlined.CameraAlt,
-                    onClick = { /* TODO: Create cinematic photo */ }
+                    onClick = { onNavigate("create/cinematic_photo") }
                 ),
                 CreateAction(
                     id = "animation",
                     title = "Animation",
                     icon = Icons.Outlined.Animation,
-                    onClick = { /* TODO: Create animation */ }
+                    onClick = { onNavigate("create/animation") }
                 ),
                 CreateAction(
                     id = "remix",
                     title = "Remix",
                     icon = Icons.Outlined.Shuffle,
-                    onClick = { /* TODO: Create remix */ }
+                    onClick = { onNavigate("create/remix") }
                 )
             )
         ),
@@ -446,19 +446,19 @@ private fun getCreateSections(): List<CreateSection> {
                     id = "get_photos",
                     title = "Get photos",
                     icon = Icons.Outlined.Download,
-                    onClick = { /* TODO: Get photos */ }
+                    onClick = { onNavigate("create/get_photos") }
                 ),
                 CreateAction(
                     id = "share_partner",
                     title = "Share with a partner",
                     icon = Icons.Outlined.PersonAdd,
-                    onClick = { /* TODO: Share with partner */ }
+                    onClick = { onNavigate("create/share_partner") }
                 ),
                 CreateAction(
                     id = "import",
                     title = "Import from other places",
                     icon = Icons.Outlined.CloudUpload,
-                    onClick = { /* TODO: Import */ }
+                    onClick = { onNavigate("create/import") }
                 )
             )
         )

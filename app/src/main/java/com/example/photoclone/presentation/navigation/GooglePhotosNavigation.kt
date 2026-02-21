@@ -14,6 +14,17 @@ import com.example.photoclone.presentation.screens.ProfileScreen
 import com.example.photoclone.presentation.screens.NotificationScreen
 import com.example.photoclone.presentation.screens.FilterDetailScreen
 
+// New create screens
+import com.example.photoclone.presentation.screens.CreateAlbumScreen
+import com.example.photoclone.presentation.screens.CreateCollageScreen
+import com.example.photoclone.presentation.screens.CreateHighlightVideoScreen
+import com.example.photoclone.presentation.screens.CreateCinematicPhotoScreen
+import com.example.photoclone.presentation.screens.CreateAnimationScreen
+import com.example.photoclone.presentation.screens.CreateRemixScreen
+import com.example.photoclone.presentation.screens.GetPhotosScreen
+import com.example.photoclone.presentation.screens.SharePartnerScreen
+import com.example.photoclone.presentation.screens.ImportScreen
+
 /**
  * Google Photos 4-Tab Navigation (2025-2026 UI)
  * Photos | Collections | Create | Search
@@ -100,6 +111,43 @@ fun GooglePhotosNavigation() {
                     }
                 }
             )
+        }
+
+        // Full-screen create routes
+        composable("create/album") {
+            CreateAlbumScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable("create/collage") {
+            CreateCollageScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable("create/highlight_video") {
+            CreateHighlightVideoScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable("create/cinematic_photo") {
+            CreateCinematicPhotoScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable("create/animation") {
+            CreateAnimationScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable("create/remix") {
+            CreateRemixScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable("create/get_photos") {
+            GetPhotosScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable("create/share_partner") {
+            SharePartnerScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable("create/import") {
+            ImportScreen(onBack = { navController.popBackStack() })
         }
 
         composable("search") {

@@ -86,20 +86,8 @@ fun GooglePhotosGrid(
                 )
             }
 
-            // Load more indicator
-            item(span = { GridItemSpan(3) }) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        strokeWidth = 2.dp
-                    )
-                }
-            }
+            // NOTE: removed the always-visible "load more" indicator to avoid showing
+            // a CircularProgressIndicator at the end of the grid when the user scrolls.
         }
     }
 }
@@ -196,4 +184,3 @@ private fun GooglePhotoGridItem(
         }
     }
 }
-

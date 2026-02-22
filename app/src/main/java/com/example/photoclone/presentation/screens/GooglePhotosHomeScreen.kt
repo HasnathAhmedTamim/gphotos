@@ -212,7 +212,7 @@ private fun CollapsibleSuggestionsRow(
             )
         }
 
-        HorizontalDivider(thickness = 1.dp)
+        Divider(thickness = 1.dp)
     }
 }
 

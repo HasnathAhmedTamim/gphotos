@@ -381,7 +381,7 @@ private fun FooterLinks() {
     ) {
         HorizontalDivider(
             modifier = Modifier.padding(vertical = 16.dp),
-            color = MaterialTheme.colorScheme.outlineVariant
+            color = MaterialTheme.colorScheme.outline
         )
 
         Row(

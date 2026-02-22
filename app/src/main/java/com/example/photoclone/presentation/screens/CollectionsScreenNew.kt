@@ -64,7 +64,7 @@ fun CollectionsScreenNew(
                 onClick = { showCreateAlbumDialog = true },
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
-                Icon(Icons.Default.Add, "Create album")
+                Icon(Icons.Default.Add, contentDescription = "Create album")
             }
         },
         containerColor = MaterialTheme.colorScheme.background,
@@ -246,7 +246,7 @@ private fun CollectionsContent(
             if (category != categories.last()) {
                 HorizontalDivider(
                     modifier = Modifier.padding(vertical = 4.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant
+                    color = MaterialTheme.colorScheme.outline
                 )
             }
         }
@@ -374,6 +374,7 @@ private fun AlbumCard(
     ) {
         // Square thumbnail image with gradient overlay
         Card(
+            onClick = onClick,
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(1f),
@@ -385,7 +386,6 @@ private fun AlbumCard(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .clickable(onClick = onClick)
             ) {
                 // Album thumbnail image
                 if (album.thumbnailUrl != null) {
@@ -484,44 +484,39 @@ private fun CategoryRow(
     category: CategoryItem,
     onClick: () -> Unit
 ) {
-    Surface(
-        onClick = onClick,
-        color = Color.Transparent,
-        modifier = Modifier.fillMaxWidth()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Category icon
-            Icon(
-                imageVector = category.icon,
-                contentDescription = category.name,
-                modifier = Modifier.size(24.dp),
-                tint = MaterialTheme.colorScheme.onBackground
-            )
+        // Category icon
+        Icon(
+            imageVector = category.icon,
+            contentDescription = category.name,
+            modifier = Modifier.size(24.dp),
+            tint = MaterialTheme.colorScheme.onBackground
+        )
 
-            Spacer(modifier = Modifier.width(16.dp))
+        Spacer(modifier = Modifier.width(16.dp))
 
-            // Category name
-            Text(
-                text = category.name,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.weight(1f)
-            )
+        // Category name
+        Text(
+            text = category.name,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.weight(1f)
+        )
 
-            // Chevron
-            Icon(
-                imageVector = Icons.Default.ChevronRight,
-                contentDescription = "Navigate",
-                modifier = Modifier.size(24.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        // Chevron
+        Icon(
+            imageVector = Icons.Default.ChevronRight,
+            contentDescription = "Navigate",
+            modifier = Modifier.size(24.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
@@ -630,4 +625,3 @@ private fun CreateAlbumDialog(
         }
     )
 }
-

@@ -146,7 +146,7 @@ private fun CreateNewSheetContent(
                 item {
                     HorizontalDivider(
                         modifier = Modifier.padding(vertical = 8.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
                     )
                 }
             }

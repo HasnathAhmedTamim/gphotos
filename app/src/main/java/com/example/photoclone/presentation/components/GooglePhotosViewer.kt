@@ -19,7 +19,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -49,10 +48,10 @@ import kotlinx.coroutines.launch
 @Composable
 fun GooglePhotosViewer(
     photos: List<String>,
-    initialPage: Int = 0,
     onDismiss: () -> Unit,
-    onDismissWithIndex: (Int) -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    initialPage: Int = 0,
+    onDismissWithIndex: (Int) -> Unit = {}
 ) {
     val pagerState = rememberPagerState(
         initialPage = initialPage,
@@ -127,7 +126,11 @@ fun GooglePhotosViewer(
             visible = uiVisible,
             enter = fadeIn() + slideInVertically { it },
             exit = fadeOut() + slideOutVertically { it },
-            modifier = Modifier.align(Alignment.BottomCenter)
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding() // ensure the action bar sits above system navigation
+                // add a small extra offset so the bar is visibly above the nav bar on all devices
+                .padding(bottom = 12.dp)
         ) {
             GooglePhotosActionBar(
                 onShare = { },
@@ -140,12 +143,18 @@ fun GooglePhotosViewer(
 
         // Page Indicator
         if (photos.size > 1 && uiVisible) {
+            // position the indicator above the bottom action bar using navigation inset + action bar height + paddings
+            val actionBarHeight = 72.dp
+            val actionBarVerticalPadding = 16.dp // Surface vertical padding (8.dp top + 8.dp bottom)
+            val actionBarExtraOffset = 12.dp // extra padding added to the action bar container
+
             PageIndicator(
                 currentPage = pagerState.currentPage,
                 totalPages = photos.size,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 80.dp)
+                    .navigationBarsPadding()
+                    .padding(bottom = actionBarHeight + actionBarVerticalPadding + actionBarExtraOffset + 8.dp)
             )
         }
 
@@ -182,8 +191,8 @@ private fun GooglePhotosTopBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                // reduce vertical padding so the bar doesn't appear too tall
-                .padding(horizontal = 8.dp, vertical = 2.dp),
+                // match other screens' horizontal padding so icons/text align correctly
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -224,7 +233,8 @@ private fun GooglePhotosActionBar(
         color = Color.Black.copy(alpha = 0.7f),
         shape = RoundedCornerShape(24.dp),
         modifier = Modifier
-            .padding(16.dp)
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
             .height(72.dp)
     ) {
         Row(
@@ -311,19 +321,14 @@ private fun ZoomablePhotoView(
     var containerSize by remember { mutableStateOf(IntSize.Zero) }
     val context = LocalContext.current
 
-    // Track last reset so we only act when resetTrigger changes
-    var lastReset by remember { mutableStateOf(resetTrigger) }
+    // When resetTrigger changes, animate back to identity (used to reset zoom/offset when page changes)
     LaunchedEffect(resetTrigger) {
-        if (resetTrigger != lastReset) {
-            lastReset = resetTrigger
-            // animate back to identity
-            coroutineScope.launch {
-                scaleAnim.animateTo(1f, animationSpec = tween(durationMillis = 250))
-                offsetXAnim.animateTo(0f, animationSpec = tween(durationMillis = 250))
-                offsetYAnim.animateTo(0f, animationSpec = tween(durationMillis = 250))
-            }
-            onZoomChanged(false)
+        coroutineScope.launch {
+            scaleAnim.animateTo(1f, animationSpec = tween(durationMillis = 250))
+            offsetXAnim.animateTo(0f, animationSpec = tween(durationMillis = 250))
+            offsetYAnim.animateTo(0f, animationSpec = tween(durationMillis = 250))
         }
+        onZoomChanged(false)
     }
 
     // notify parent when zoom state changes (only when active page)

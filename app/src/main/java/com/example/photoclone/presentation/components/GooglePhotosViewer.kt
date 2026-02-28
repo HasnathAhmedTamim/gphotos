@@ -3,6 +3,7 @@ package com.example.photoclone.presentation.components
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.*
 import androidx.compose.foundation.layout.*
@@ -30,7 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
+import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import coil.size.Size
 import kotlinx.coroutines.delay
@@ -399,10 +400,32 @@ private fun ZoomablePhotoView(
                 // This allows swipe gestures to pass through to HorizontalPager
             }
     ) {
-        // Loading indicator
-        var isLoading by remember { mutableStateOf(true) }
+        // Build request without crossfade to avoid an extra fade animation which can
+        // look like a blink when the image is already cached.
+        val request = ImageRequest.Builder(context)
+            .data(imageUrl)
+            .size(Size.ORIGINAL)
+            .build()
 
-        if (isLoading) {
+        val painter = rememberAsyncImagePainter(request)
+        val painterState = painter.state
+
+        // Debounce showing the spinner so a single fast materialization from cache
+        // doesn't render the spinner for one frame (that causes a visible blink).
+        var showSpinner by remember { mutableStateOf(false) }
+        LaunchedEffect(painterState) {
+            if (painterState is coil.compose.AsyncImagePainter.State.Loading) {
+                // only show spinner if loading persists for >120ms
+                kotlinx.coroutines.delay(120)
+                if (painter.state is coil.compose.AsyncImagePainter.State.Loading) {
+                    showSpinner = true
+                }
+            } else {
+                showSpinner = false
+            }
+        }
+
+        if (showSpinner) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
@@ -415,18 +438,12 @@ private fun ZoomablePhotoView(
             }
         }
 
-        AsyncImage(
-            model = ImageRequest.Builder(context)
-                .data(imageUrl)
-                .size(Size.ORIGINAL)
-                .crossfade(200)
-                .listener(
-                    onSuccess = { _, _ -> isLoading = false },
-                    onError = { _, _ -> isLoading = false }
-                )
-                .build(),
+        Image(
+            painter = painter,
             contentDescription = null,
-            contentScale = ContentScale.Fit,
+            // Use Crop to match the grid thumbnail behavior and avoid sudden
+            // re-layout/letterboxing when opening the viewer.
+            contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxSize()
                 .graphicsLayer {

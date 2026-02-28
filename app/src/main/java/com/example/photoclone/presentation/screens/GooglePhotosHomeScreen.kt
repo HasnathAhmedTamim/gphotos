@@ -89,9 +89,23 @@ fun GooglePhotosHomeScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
         Box(modifier = modifier.padding(padding)) {
+            // Compute the list actually displayed in the grid (may be filtered).
+            // Hoist this so the viewer receives the same ordering as the grid.
+            val displayPhotos = remember(photos, activeFilter) {
+                if (activeFilter.isNullOrEmpty()) photos else {
+                    when (activeFilter?.lowercase()) {
+                        "recent" -> photos.takeLast(12.coerceAtMost(photos.size))
+                        "favorites" -> photos.filterIndexed { idx, _ -> idx % 5 == 0 }
+                        "videos" -> photos.filterIndexed { idx, _ -> idx % 3 == 0 }
+                        else -> photos
+                    }
+                }
+            }
+
             if (showViewer) {
+                // Viewer should show the same (possibly filtered) list the user tapped in.
                 GooglePhotosViewer(
-                    photos = photos,
+                    photos = displayPhotos,
                     initialPage = selectedPhotoIndex,
                     onDismiss = { showViewer = false },
                     onDismissWithIndex = { idx -> selectedPhotoIndex = idx }
@@ -112,25 +126,13 @@ fun GooglePhotosHomeScreen(
                         }
                     )
 
-                    // If a filter was applied via the detail screen, use it to compute displayPhotos
-                    val displayPhotos = remember(photos, activeFilter) {
-                        if (activeFilter.isNullOrEmpty()) photos else {
-                            when (activeFilter?.lowercase()) {
-                                "recent" -> photos.takeLast(12.coerceAtMost(photos.size))
-                                "favorites" -> photos.filterIndexed { idx, _ -> idx % 5 == 0 }
-                                "videos" -> photos.filterIndexed { idx, _ -> idx % 3 == 0 }
-                                else -> photos
-                            }
-                        }
-                    }
-
                     // Photo grid
                     GooglePhotosGrid(
                         photos = displayPhotos,
                         onPhotoClick = { index ->
-                            // Map clicked photo back to original photos index for viewer
-                            val originalIndex = photos.indexOf(displayPhotos[index]).takeIf { it >= 0 } ?: index
-                            selectedPhotoIndex = originalIndex
+                            // Use index within displayed list so the viewer opens the
+                            // exact image the user tapped (works correctly with filters)
+                            selectedPhotoIndex = index
                             showViewer = true
                         },
                         onSelectionModeChange = { inSelectionMode ->

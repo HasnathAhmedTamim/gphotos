@@ -1,7 +1,6 @@
 package com.example.photoclone.presentation.viewmodel
 
 import android.content.Context
-import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.photoclone.data.model.Photo
@@ -11,10 +10,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
-import androidx.paging.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
 
@@ -32,6 +29,7 @@ import kotlinx.coroutines.Job
  * */
 
 // ViewModel that manages photo list and selection state for UI screens.
+@Suppress("unused")
 class PhotoSelectionViewModel : ViewModel() {
 
     // All photos shown in the UI (source of truth for selection flag)
@@ -93,7 +91,9 @@ class PhotoSelectionViewModel : ViewModel() {
         pickedImagesCollectJob = null
         viewModelScope.launch {
             try {
-                val uris = GalleryRepository.loadGalleryImageUris(context, limit)
+                // Use applicationContext to avoid accidentally retaining an Activity context
+                val appContext = context.applicationContext
+                val uris = GalleryRepository.loadGalleryImageUris(appContext, limit)
                 val photoList = uris.mapIndexed { index, uri ->
                     Photo(
                         id = index.toLong(),
@@ -226,14 +226,17 @@ class PhotoSelectionViewModel : ViewModel() {
 
     // New: provide a paging flow of Photos for large galleries
     fun pagerPhotos(context: Context, pageSize: Int = 50): Flow<PagingData<Photo>> {
+        // Use applicationContext to avoid Activity retention
+        val appContext = context.applicationContext
         // GalleryRepository.pagerForImages already returns Flow<PagingData<Photo>> so just cache it here
-        return GalleryRepository.pagerForImages(context, pageSize)
+        return GalleryRepository.pagerForImages(appContext, pageSize)
             .cachedIn(viewModelScope)
     }
 
     // Persist a list of picked Uris (SAF) using PickedImagesRepository
     fun persistPickedUris(context: Context, uris: List<String>) {
-        val repo = PickedImagesRepository(context)
+        // Use applicationContext here to avoid leaking a UI context
+        val repo = PickedImagesRepository(context.applicationContext)
         viewModelScope.launch {
             uris.forEach { uri ->
                 try {
@@ -249,7 +252,7 @@ class PhotoSelectionViewModel : ViewModel() {
 
     // Load persisted picked images from local DB (Room) and set them as photos
     fun loadPickedImages(context: Context) {
-        val repo = PickedImagesRepository(context)
+        val repo = PickedImagesRepository(context.applicationContext)
         // Cancel any prior job
         pickedImagesCollectJob?.cancel()
         pickedImagesCollectJob = viewModelScope.launch {

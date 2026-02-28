@@ -1,5 +1,6 @@
 package com.example.photoclone
 
+import android.app.Activity
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -13,6 +14,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.view.WindowCompat
@@ -47,19 +49,24 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun SetupSystemBars() {
     val view = LocalView.current
+    val context = LocalContext.current
+    val activity = context as? Activity
     val darkTheme = isSystemInDarkTheme()
 
     SideEffect {
-        val window = (view.context as ComponentActivity).window
+        // Only configure system bars when we have an Activity to operate on
+        activity?.let { act ->
+            val window = act.window
 
-        // Transparent status bar for immersive experience
-        window.statusBarColor = Color.Transparent.toArgb()
-        window.navigationBarColor = Color.Transparent.toArgb()
+            // Transparent status bar for immersive experience
+            window.statusBarColor = Color.Transparent.toArgb()
+            window.navigationBarColor = Color.Transparent.toArgb()
 
-        // Light/dark icons based on theme
-        WindowCompat.getInsetsController(window, view).apply {
-            isAppearanceLightStatusBars = !darkTheme
-            isAppearanceLightNavigationBars = !darkTheme
+            // Light/dark icons based on theme
+            WindowCompat.getInsetsController(window, view).apply {
+                isAppearanceLightStatusBars = !darkTheme
+                isAppearanceLightNavigationBars = !darkTheme
+            }
         }
     }
 }
